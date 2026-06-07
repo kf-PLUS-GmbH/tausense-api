@@ -7,7 +7,7 @@ Minimal, API-first Django backend for Smart City IoT sensor data in Landkreis Ho
 - Django 5
 - Django REST Framework
 - drf-spectacular (OpenAPI 3)
-- PostgreSQL (production) / SQLite (development)
+- PostgreSQL (per `RELEASE_MODE`)
 
 ## Project apps
 
@@ -29,17 +29,74 @@ python manage.py seed_demo_data
 python manage.py runserver
 ```
 
-## Environment (optional PostgreSQL)
+## Environment / database modes
 
-If these variables are provided, PostgreSQL is used:
+Copy `.env.example` to `.env` and set values (never commit `.env`).
 
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_HOST`
-- `POSTGRES_PORT`
+Required in `.env`:
 
-Otherwise SQLite is used.
+- `SECRET_KEY` — generate with:
+  `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`
+  If the key contains special characters (`#`, `$`, `!`, …), wrap it in double quotes in `.env`:
+  `SECRET_KEY="your-key-here"`
+- PostgreSQL variables for your active `RELEASE_MODE`
+
+`RELEASE_MODE` selects which PostgreSQL block is used:
+
+| Mode | Purpose |
+|---|---|
+| `dev_local` | Your local PostgreSQL (`POSTGRES_*_DEV_LOCAL`) |
+| `testing` | Shared test server (`POSTGRES_*_TESTING` or legacy `POSTGRES_*`) |
+| `release` | Production (`POSTGRES_*_RELEASE`) |
+
+Example:
+
+```env
+RELEASE_MODE=testing
+POSTGRES_DB_TESTING=taupunktsensorik
+POSTGRES_HOST_TESTING=192.168.2.110
+...
+```
+
+Switch locally:
+
+```env
+RELEASE_MODE=dev_local
+```
+
+`DEBUG` defaults to `true` for `dev_local`/`testing` and `false` for `release`.
+
+## Webhook (data ingestion)
+
+`POST /api/webhook/`
+
+Receives LoRaWAN payloads and writes `SensorReading` rows to the database.
+
+Mapping:
+
+| Payload field | Database |
+|---|---|
+| `deviceEui` | `Sensor.external_id` |
+| `deviceName` | `Sensor.name` |
+| `timestamp` / `rxTime` | `SensorReading.timestamp` |
+| `air_temperature_radiation_shield` or `air_temperature` | `air_temperature` |
+| `air_humidity_radiation_shield` or `air_humidity` | `humidity` |
+| `surface_temperature` | `road_temperature` |
+| full JSON body | `raw_data` |
+
+Unknown sensors are auto-created **without** municipality assignment when `WEBHOOK_AUTO_CREATE_SENSOR=true`. Gemeinde kann später im Admin zugeordnet werden.
+
+Optional header when `WEBHOOK_SECRET` is set:
+
+`X-Webhook-Secret: <your-secret>`
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/api/webhook/ \
+  -H "Content-Type: application/json" \
+  -d "{\"deviceEui\":\"70B3D57BA000638D\",\"deviceName\":\"MUB-TPK-0001\",\"timestamp\":\"2026-06-03T09:10:06.316Z\",\"air_temperature_radiation_shield\":12.84,\"air_humidity_radiation_shield\":83.77,\"surface_temperature\":24.8,\"lat\":50.22764,\"lon\":11.76708}"
+```
 
 ## API
 

@@ -38,10 +38,13 @@ def dashboard_warnings(municipality_id=None):
     data = {}
     rules = AlertRule.objects.filter(active=True, municipality__isnull=False, sensor__isnull=True)
     for reading in qs:
-        municipality_name = reading.sensor.municipality.name
+        municipality = reading.sensor.municipality
+        if municipality is None:
+            continue
+        municipality_name = municipality.name
         if municipality_name not in data:
             data[municipality_name] = 0
-        for rule in rules.filter(municipality=reading.sensor.municipality):
+        for rule in rules.filter(municipality=municipality):
             triggered, _ = evaluate_rule(rule, reading)
             if triggered:
                 data[municipality_name] += 1
@@ -57,7 +60,9 @@ def dashboard_coldest_sensor(municipality_id=None):
     return {
         'sensor_id': reading.sensor_id,
         'sensor_name': reading.sensor.name,
-        'municipality': reading.sensor.municipality.name,
+        'municipality': (
+            reading.sensor.municipality.name if reading.sensor.municipality else None
+        ),
         'road_temperature': reading.road_temperature,
         'air_temperature': reading.air_temperature,
         'dew_point': calculate_dew_point(reading.air_temperature, reading.humidity),
@@ -80,15 +85,18 @@ def dashboard_map_data(municipality_id=None):
         if reading is None:
             continue
         trend = calculate_trend(reading.air_temperature, reading.previous_air_temperature)
-        applicable = rules.filter(sensor=sensor) | rules.filter(
-            municipality=sensor.municipality, sensor__isnull=True
-        )
+        applicable = rules.filter(sensor=sensor)
+        if sensor.municipality_id:
+            applicable = applicable | rules.filter(
+                municipality=sensor.municipality,
+                sensor__isnull=True,
+            )
         triggered = any(evaluate_rule(rule, reading)[0] for rule in applicable)
         payload.append(
             {
                 'sensor_id': sensor.id,
                 'sensor_name': sensor.name,
-                'municipality': sensor.municipality.name,
+                'municipality': sensor.municipality.name if sensor.municipality else None,
                 'coordinates': {'lat': float(sensor.latitude), 'lon': float(sensor.longitude)},
                 'latest_reading': {
                     'timestamp': reading.timestamp,

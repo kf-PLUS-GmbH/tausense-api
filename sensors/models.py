@@ -13,8 +13,11 @@ class Sensor(models.Model):
     name = models.CharField(max_length=255)
     municipality = models.ForeignKey(
         Municipality,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='sensors',
+        null=True,
+        blank=True,
+        help_text='Optional; can be assigned later in admin. Not required for webhook ingestion.',
     )
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)

@@ -8,7 +8,11 @@ from readings.models import SensorReading
 class SensorReadingSerializer(serializers.ModelSerializer):
     dew_point = serializers.SerializerMethodField()
     trend = serializers.SerializerMethodField()
-    municipality = serializers.IntegerField(source='sensor.municipality_id', read_only=True)
+    municipality = serializers.IntegerField(
+        source='sensor.municipality_id',
+        read_only=True,
+        allow_null=True,
+    )
 
     class Meta:
         model = SensorReading

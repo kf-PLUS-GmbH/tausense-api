@@ -5,20 +5,36 @@ Django settings for Taupunktsensorik-App backend.
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
+from config.database import build_database_config, get_release_mode, load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR)
+RELEASE_MODE = get_release_mode()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e735g49707#ux(kiyl!(o6ayl@1p$u5h&m%bs7h&qa(6(vmrkf'
+SECRET_KEY = os.environ.get('SECRET_KEY', '').strip()
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        'SECRET_KEY is missing. Add it to your .env file. '
+        'Generate one with: python -c "from django.core.management.utils import '
+        'get_random_secret_key; print(get_random_secret_key())"'
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', str(RELEASE_MODE != 'release')).lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -71,15 +87,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Database — selected by RELEASE_MODE in .env (dev_local | testing | release)
+DATABASES = build_database_config(RELEASE_MODE)
 
 
 # Password validation
@@ -142,17 +151,8 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
-if os.environ.get('POSTGRES_DB'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB', 'taupunktsensorik'),
-            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-        }
-    }
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '')
+WEBHOOK_AUTO_CREATE_SENSOR = os.environ.get('WEBHOOK_AUTO_CREATE_SENSOR', 'true').lower() == 'true'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

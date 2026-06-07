@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
+
+from readings.webhook_views import LorawanWebhookView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -19,5 +21,6 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name='schema'),
         name='redoc',
     ),
+    path('api/webhook/', LorawanWebhookView.as_view(), name='lorawan-webhook'),
     path('api/v1/', include('core.api_urls')),
 ]

@@ -4,7 +4,11 @@ from sensors.models import Sensor
 
 
 class SensorSerializer(serializers.ModelSerializer):
-    municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    municipality_name = serializers.CharField(
+        source='municipality.name',
+        read_only=True,
+        allow_null=True,
+    )
 
     class Meta:
         model = Sensor
