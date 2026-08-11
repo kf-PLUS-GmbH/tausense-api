@@ -4,7 +4,6 @@ import random
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from alerts.models import AlertRule
 from municipalities.models import Municipality
 from readings.models import SensorReading
 from sensors.models import Sensor
@@ -47,20 +46,21 @@ class Command(BaseCommand):
                     sensor=sensor,
                     timestamp=ts,
                     defaults={
+                        'device_name': sensor.name,
                         'air_temperature': round(random.uniform(-3.0, 3.0), 2),
                         'road_temperature': round(random.uniform(-5.0, 2.0), 2),
                         'humidity': round(random.uniform(70.0, 98.0), 2),
-                        'raw_data': {'battery': random.randint(75, 100)},
+                        'air_temperature_radiation_shield': round(random.uniform(-3.0, 3.0), 2),
+                        'air_humidity_radiation_shield': round(random.uniform(70.0, 98.0), 2),
+                        'air_temperature_unshielded': round(random.uniform(-2.0, 4.0), 2),
+                        'air_humidity_unshielded': round(random.uniform(65.0, 95.0), 2),
+                        'reported_dew_point': round(random.uniform(-5.0, 2.0), 2),
+                        'angle': random.randint(35, 55),
+                        'sensor_temperature': round(random.uniform(-3.0, 3.0), 2),
+                        'battery_voltage': round(random.uniform(2.5, 3.1), 2),
+                        'latitude': sensor.latitude,
+                        'longitude': sensor.longitude,
                     },
                 )
-
-        AlertRule.objects.get_or_create(
-            name='Road frost risk',
-            municipality=municipality,
-            threshold_type=AlertRule.THRESHOLD_TEMPERATURE,
-            operator=AlertRule.OP_LTE,
-            threshold_value=0.0,
-            defaults={'active': True},
-        )
 
         self.stdout.write(self.style.SUCCESS('Demo data seeded successfully.'))

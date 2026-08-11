@@ -48,6 +48,7 @@ class WebhookIngestResponseSerializer(serializers.Serializer):
     reading_id = serializers.IntegerField()
     sensor_id = serializers.IntegerField()
     external_id = serializers.CharField()
+    device_name = serializers.CharField(allow_blank=True)
     timestamp = serializers.DateTimeField()
 
 

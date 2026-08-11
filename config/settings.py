@@ -30,11 +30,14 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', str(RELEASE_MODE != 'release')).lower() == 'true'
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-    if host.strip()
-]
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [
+        host.strip()
+        for host in os.environ.get('ALLOWED_HOSTS', '').split(',')
+        if host.strip()
+    ]
 
 
 # Application definition
@@ -54,6 +57,7 @@ INSTALLED_APPS = [
     'sensors',
     'readings',
     'alerts',
+    'devices.apps.DevicesConfig',
 ]
 
 MIDDLEWARE = [
@@ -151,8 +155,37 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '')
 WEBHOOK_AUTO_CREATE_SENSOR = os.environ.get('WEBHOOK_AUTO_CREATE_SENSOR', 'true').lower() == 'true'
+
+FIREBASE_ENABLED = os.environ.get('FIREBASE_ENABLED', 'true').lower() == 'true'
+FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '').strip()
+FIREBASE_SERVICE_ACCOUNT_PATH = os.environ.get('FIREBASE_SERVICE_ACCOUNT_PATH', '').strip()
+TEST_PUSH_ENABLED = os.environ.get('TEST_PUSH_ENABLED', 'false').lower() == 'true'
+TEST_PUSH_SECRET = os.environ.get('TEST_PUSH_SECRET', '').strip()
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'devices': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

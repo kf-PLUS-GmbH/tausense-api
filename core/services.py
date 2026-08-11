@@ -1,7 +1,11 @@
 from django.db.models import F, OuterRef, Subquery
 
-from alerts.models import AlertRule
-from alerts.services import evaluate_rule, status_from_trigger
+from core.ice_warning import (
+    ICE_WARNING_LABELS,
+    ICE_WARNING_NONE,
+    alert_status_for_level,
+    evaluate_ice_warning,
+)
 from core.utils import calculate_dew_point, calculate_trend
 from readings.models import SensorReading
 from sensors.models import Sensor
@@ -33,22 +37,24 @@ def latest_readings_with_previous(municipality_id=None):
     )
 
 
+def _ice_warning_for_reading(reading):
+    dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
+    level = evaluate_ice_warning(reading.road_temperature, dew_point, reading.humidity)
+    return level, dew_point
+
+
 def dashboard_warnings(municipality_id=None):
     qs = latest_readings_with_previous(municipality_id=municipality_id)
     data = {}
-    rules = AlertRule.objects.filter(active=True, municipality__isnull=False, sensor__isnull=True)
     for reading in qs:
         municipality = reading.sensor.municipality
         if municipality is None:
             continue
+        level, _ = _ice_warning_for_reading(reading)
+        if level == ICE_WARNING_NONE:
+            continue
         municipality_name = municipality.name
-        if municipality_name not in data:
-            data[municipality_name] = 0
-        for rule in rules.filter(municipality=municipality):
-            triggered, _ = evaluate_rule(rule, reading)
-            if triggered:
-                data[municipality_name] += 1
-                break
+        data[municipality_name] = data.get(municipality_name, 0) + 1
     return [{'municipality': key, 'warning_count': value} for key, value in data.items()]
 
 
@@ -57,20 +63,23 @@ def dashboard_coldest_sensor(municipality_id=None):
     reading = qs.first()
     if not reading:
         return None
+    sensor_name = reading.sensor.display_name or reading.sensor.name
     return {
         'sensor_id': reading.sensor_id,
-        'sensor_name': reading.sensor.name,
+        'sensor_name': sensor_name,
+        'device_name': reading.device_name,
         'municipality': (
             reading.sensor.municipality.name if reading.sensor.municipality else None
         ),
         'road_temperature': reading.road_temperature,
         'air_temperature': reading.air_temperature,
         'dew_point': calculate_dew_point(reading.air_temperature, reading.humidity),
+        'battery_voltage': reading.battery_voltage,
         'timestamp': reading.timestamp,
     }
 
 
-def dashboard_map_data(municipality_id=None):
+def dashboard_map_data(municipality_id=None, since=None):
     sensor_qs = Sensor.objects.select_related('municipality').filter(active=True)
     if municipality_id:
         sensor_qs = sensor_qs.filter(municipality_id=municipality_id)
@@ -78,35 +87,49 @@ def dashboard_map_data(municipality_id=None):
     latest_by_sensor = {
         r.sensor_id: r for r in latest_readings_with_previous(municipality_id=municipality_id)
     }
-    rules = AlertRule.objects.filter(active=True).select_related('municipality', 'sensor')
     payload = []
     for sensor in sensor_qs:
         reading = latest_by_sensor.get(sensor.id)
         if reading is None:
             continue
+        if since and reading.timestamp <= since and sensor.updated_at <= since:
+            continue
         trend = calculate_trend(reading.air_temperature, reading.previous_air_temperature)
-        applicable = rules.filter(sensor=sensor)
-        if sensor.municipality_id:
-            applicable = applicable | rules.filter(
-                municipality=sensor.municipality,
-                sensor__isnull=True,
-            )
-        triggered = any(evaluate_rule(rule, reading)[0] for rule in applicable)
+        ice_warning_level, dew_point = _ice_warning_for_reading(reading)
+        latitude = reading.latitude if reading.latitude is not None else sensor.latitude
+        longitude = reading.longitude if reading.longitude is not None else sensor.longitude
+        if latitude is None or longitude is None:
+            continue
+        sensor_name = sensor.display_name or sensor.name
         payload.append(
             {
                 'sensor_id': sensor.id,
-                'sensor_name': sensor.name,
+                'sensor_name': sensor_name,
+                'device_name': sensor.device_name,
+                'operator_name': sensor.operator_name,
                 'municipality': sensor.municipality.name if sensor.municipality else None,
-                'coordinates': {'lat': float(sensor.latitude), 'lon': float(sensor.longitude)},
+                'coordinates': {'lat': float(latitude), 'lon': float(longitude)},
+                'updated_at': sensor.updated_at,
                 'latest_reading': {
                     'timestamp': reading.timestamp,
+                    'device_name': reading.device_name,
                     'air_temperature': reading.air_temperature,
                     'road_temperature': reading.road_temperature,
                     'humidity': reading.humidity,
-                    'dew_point': calculate_dew_point(reading.air_temperature, reading.humidity),
+                    'air_temperature_radiation_shield': reading.air_temperature_radiation_shield,
+                    'air_humidity_radiation_shield': reading.air_humidity_radiation_shield,
+                    'air_temperature_unshielded': reading.air_temperature_unshielded,
+                    'air_humidity_unshielded': reading.air_humidity_unshielded,
+                    'dew_point': dew_point,
+                    'reported_dew_point': reading.reported_dew_point,
                     'trend': trend,
+                    'angle': reading.angle,
+                    'sensor_temperature': reading.sensor_temperature,
+                    'battery_voltage': reading.battery_voltage,
                 },
-                'alert_status': status_from_trigger(triggered),
+                'ice_warning_level': ice_warning_level,
+                'ice_warning_label': ICE_WARNING_LABELS[ice_warning_level],
+                'alert_status': alert_status_for_level(ice_warning_level),
             }
         )
     return payload

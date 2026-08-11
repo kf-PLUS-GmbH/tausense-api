@@ -7,6 +7,7 @@ from core.views import (
     DashboardMapDataView,
     DashboardWarningsView,
 )
+from devices.views import AlertPreferencesView, PushTokenView
 from municipalities.views import MunicipalityViewSet
 from readings.views import SensorReadingViewSet
 from sensors.views import SensorViewSet
@@ -27,4 +28,6 @@ urlpatterns = [
         name='dashboard-coldest-sensor',
     ),
     path('dashboard/map-data/', DashboardMapDataView.as_view(), name='dashboard-map-data'),
+    path('alerts/preferences/', AlertPreferencesView.as_view(), name='alert-preferences'),
+    path('push-tokens/', PushTokenView.as_view(), name='push-tokens'),
 ]

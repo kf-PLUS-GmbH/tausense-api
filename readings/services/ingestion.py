@@ -47,13 +47,33 @@ def _pick_float(payload: dict[str, Any], *keys: str) -> float:
     )
 
 
+def _optional_float(payload: dict[str, Any], key: str) -> float | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    return float(value)
+
+
+def _optional_decimal(payload: dict[str, Any], key: str) -> Decimal | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    return Decimal(str(value))
+
+
 def _resolve_sensor(payload: dict[str, Any]) -> Sensor:
     device_eui = payload.get('deviceEui')
     if not device_eui:
         raise WebhookIngestionError('deviceEui is required', field='deviceEui')
 
     external_id = str(device_eui).strip().upper()
+    device_name = str(payload.get('deviceName') or '').strip()
     sensor = Sensor.objects.filter(external_id=external_id).first()
+    if not sensor and device_name:
+        sensor = Sensor.objects.filter(device_name=device_name).first()
+        if sensor:
+            sensor.external_id = external_id
+            sensor.save(update_fields=['external_id'])
     if sensor:
         return _maybe_update_sensor_coordinates(sensor, payload)
 
@@ -71,10 +91,11 @@ def _resolve_sensor(payload: dict[str, Any]) -> Sensor:
             field='lat',
         )
 
-    name = payload.get('deviceName') or external_id
+    name = device_name or external_id
     return Sensor.objects.create(
         external_id=external_id,
         name=name,
+        device_name=device_name or None,
         municipality=None,
         latitude=Decimal(str(lat)),
         longitude=Decimal(str(lon)),
@@ -97,7 +118,9 @@ def _maybe_update_sensor_coordinates(sensor: Sensor, payload: dict[str, Any]) ->
     if sensor.longitude != new_lon:
         updates['longitude'] = new_lon
     device_name = payload.get('deviceName')
-    if device_name and sensor.name != device_name:
+    if device_name and sensor.device_name != device_name:
+        updates['device_name'] = device_name
+    if device_name and not sensor.display_name and sensor.name != device_name:
         updates['name'] = device_name
     if updates:
         for field, value in updates.items():
@@ -126,12 +149,33 @@ def ingest_lorawan_payload(payload: dict[str, Any]) -> SensorReading:
         sensor=sensor,
         timestamp=timestamp,
         defaults={
+            'device_name': payload.get('deviceName') or '',
             'air_temperature': air_temperature,
             'road_temperature': road_temperature,
             'humidity': humidity,
+            'air_temperature_radiation_shield': _optional_float(
+                payload,
+                'air_temperature_radiation_shield',
+            ),
+            'air_humidity_radiation_shield': _optional_float(
+                payload,
+                'air_humidity_radiation_shield',
+            ),
+            'air_temperature_unshielded': _optional_float(payload, 'air_temperature'),
+            'air_humidity_unshielded': _optional_float(payload, 'air_humidity'),
+            'reported_dew_point': _optional_float(payload, 'dew_point'),
+            'angle': _optional_float(payload, 'angle'),
+            'sensor_temperature': _optional_float(payload, 'sensor_temperature'),
+            'battery_voltage': _optional_float(payload, 'battery_voltage'),
+            'latitude': _optional_decimal(payload, 'lat'),
+            'longitude': _optional_decimal(payload, 'lon'),
             'raw_data': payload,
         },
     )
+
+    from devices.services.subscriptions import notify_sensor_ice_warning
+
+    notify_sensor_ice_warning(sensor, reading)
     return reading
 
 

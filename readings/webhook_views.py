@@ -1,4 +1,5 @@
-from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -13,6 +14,7 @@ from readings.webhook_serializers import (
 )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LorawanWebhookView(APIView):
     """
     Receives LoRaWAN sensor payloads and persists them as SensorReading rows.
@@ -20,15 +22,6 @@ class LorawanWebhookView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
-
-    def _check_secret(self, request) -> Response | None:
-        expected = getattr(settings, 'WEBHOOK_SECRET', '') or ''
-        if not expected:
-            return None
-        provided = request.headers.get('X-Webhook-Secret', '')
-        if provided != expected:
-            return Response({'detail': 'Invalid webhook secret.'}, status=status.HTTP_403_FORBIDDEN)
-        return None
 
     def _normalize_payload(self, data):
         if isinstance(data, list):
@@ -41,6 +34,7 @@ class LorawanWebhookView(APIView):
             'reading_id': reading.id,
             'sensor_id': reading.sensor_id,
             'external_id': reading.sensor.external_id,
+            'device_name': reading.device_name,
             'timestamp': reading.timestamp,
         }
 
@@ -75,10 +69,6 @@ class LorawanWebhookView(APIView):
         ),
     )
     def post(self, request):
-        denied = self._check_secret(request)
-        if denied is not None:
-            return denied
-
         payloads, is_bulk = self._normalize_payload(request.data)
         if not payloads:
             return Response({'detail': 'Request body must be a JSON object or array.'}, status=400)
