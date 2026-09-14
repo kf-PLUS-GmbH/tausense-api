@@ -162,6 +162,7 @@ FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', 
 FIREBASE_SERVICE_ACCOUNT_PATH = os.environ.get('FIREBASE_SERVICE_ACCOUNT_PATH', '').strip()
 TEST_PUSH_ENABLED = os.environ.get('TEST_PUSH_ENABLED', 'false').lower() == 'true'
 TEST_PUSH_SECRET = os.environ.get('TEST_PUSH_SECRET', '').strip()
+PUSH_REMINDER_MINUTES = int(os.environ.get('PUSH_REMINDER_MINUTES', '30'))
 
 LOGGING = {
     'version': 1,

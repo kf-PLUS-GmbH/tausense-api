@@ -345,8 +345,8 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             f"Push result: notified={result['notified']} "
-            f"previous={result['previous_level']} new={result['new_level']} "
-            f"matched={result.get('matched_tokens', 0)} sent={result['sent_count']} "
+            f"level={result['new_level']} "
+            f"users={result.get('matched_users', 0)} sent={result['sent_count']} "
             f"failed={result['failed_count']}"
         )
         if result['sent_count'] == 0:

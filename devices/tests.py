@@ -1,19 +1,29 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.ice_warning import ICE_WARNING_ACUTE_ICE, ICE_WARNING_NONE, ICE_WARNING_POSSIBLE_SLIP
-from devices.models import AlertPreference, PushToken
+from core.ice_warning import (
+    ICE_WARNING_ACUTE_ICE,
+    ICE_WARNING_INCREASED_ICE,
+    ICE_WARNING_NONE,
+    ICE_WARNING_POSSIBLE_SLIP,
+)
+from devices.models import AlertPreference, PushDigestState, PushToken
+from devices.services.digest import build_warning_digest, collect_warning_sensors
 from devices.services.push import send_push_notification
 from devices.services.subscriptions import (
-    _should_notify,
+    _should_send_digest,
     find_subscribed_push_tokens,
     matches_severity_filter,
     matches_subscription,
+    notify_sensor_ice_warning,
 )
 from municipalities.models import Municipality
+from readings.models import SensorReading
 from sensors.models import Sensor
 
 
@@ -263,17 +273,191 @@ class PreferenceSubscriptionTests(TestCase):
 
 
 class IceWarningNotificationDecisionTests(TestCase):
-    def test_notify_on_new_warning(self):
-        self.assertTrue(_should_notify(ICE_WARNING_NONE, ICE_WARNING_POSSIBLE_SLIP))
+    def test_notify_on_first_warning(self):
+        self.assertTrue(_should_send_digest(state=None, worst_severity=2, sensor_count=1))
 
     def test_notify_on_escalation(self):
-        self.assertTrue(_should_notify(ICE_WARNING_POSSIBLE_SLIP, ICE_WARNING_ACUTE_ICE))
+        state = PushDigestState(
+            last_worst_severity=1,
+            last_sensor_count=1,
+            last_sent_at=timezone.now(),
+        )
+        self.assertTrue(_should_send_digest(state=state, worst_severity=3, sensor_count=1))
 
     def test_skip_when_no_warning(self):
-        self.assertFalse(_should_notify(ICE_WARNING_POSSIBLE_SLIP, ICE_WARNING_NONE))
+        self.assertFalse(_should_send_digest(state=None, worst_severity=0, sensor_count=0))
 
-    def test_skip_when_same_level(self):
-        self.assertFalse(_should_notify(ICE_WARNING_POSSIBLE_SLIP, ICE_WARNING_POSSIBLE_SLIP))
+    def test_skip_when_same_level_before_reminder(self):
+        state = PushDigestState(
+            last_worst_severity=2,
+            last_sensor_count=2,
+            last_sent_at=timezone.now(),
+        )
+        self.assertFalse(_should_send_digest(state=state, worst_severity=2, sensor_count=2))
+
+    def test_notify_when_same_level_after_reminder(self):
+        state = PushDigestState(
+            last_worst_severity=2,
+            last_sensor_count=2,
+            last_sent_at=timezone.now() - timedelta(minutes=31),
+        )
+        self.assertTrue(_should_send_digest(state=state, worst_severity=2, sensor_count=2))
+
+    def test_notify_when_sensor_count_increases(self):
+        state = PushDigestState(
+            last_worst_severity=2,
+            last_sensor_count=1,
+            last_sent_at=timezone.now(),
+        )
+        self.assertTrue(_should_send_digest(state=state, worst_severity=2, sensor_count=2))
+
+
+class PushReminderFlowTests(TestCase):
+    def setUp(self):
+        self.sensor = Sensor.objects.create(
+            name='Reminder Sensor',
+            latitude=50.3,
+            longitude=11.9,
+            sensor_type=Sensor.TYPE_STANDARD,
+            active=True,
+            external_id='REM-001',
+        )
+        AlertPreference.objects.create(
+            user_id='user-reminder',
+            severity_filter='orange',
+            notifications_enabled=True,
+            selected_sensor_ids=[self.sensor.id],
+        )
+        PushToken.objects.create(
+            user_id='user-reminder',
+            fcm_token='token-reminder',
+            platform='android',
+        )
+
+    def _reading(self, road_temperature: float, humidity: float = 92.0, air_temperature: float = 1.0):
+        return SensorReading.objects.create(
+            sensor=self.sensor,
+            timestamp=timezone.now(),
+            air_temperature=air_temperature,
+            road_temperature=road_temperature,
+            humidity=humidity,
+        )
+
+    @patch('devices.services.subscriptions.send_digest_push_notification')
+    def test_first_orange_warning_sends_push(self, mock_send):
+        mock_send.return_value = MagicMock(success=True)
+
+        result = notify_sensor_ice_warning(self.sensor, self._reading(road_temperature=1.0))
+
+        self.assertTrue(result['notified'])
+        mock_send.assert_called_once()
+        digest = mock_send.call_args.kwargs['digest']
+        self.assertEqual(digest.type, 'digest')
+        self.assertEqual(digest.sensor_count, 1)
+
+    @patch('devices.services.subscriptions.send_digest_push_notification')
+    def test_same_orange_level_skips_before_reminder(self, mock_send):
+        mock_send.return_value = MagicMock(success=True)
+        notify_sensor_ice_warning(self.sensor, self._reading(road_temperature=1.0))
+
+        result = notify_sensor_ice_warning(self.sensor, self._reading(road_temperature=1.0))
+
+        self.assertFalse(result['notified'])
+        self.assertEqual(mock_send.call_count, 1)
+
+    @patch('devices.services.subscriptions.send_digest_push_notification')
+    def test_same_orange_level_reminds_after_30_minutes(self, mock_send):
+        mock_send.return_value = MagicMock(success=True)
+        reading = self._reading(road_temperature=1.0)
+        notify_sensor_ice_warning(self.sensor, reading)
+
+        PushDigestState.objects.filter(user_id='user-reminder').update(
+            last_sent_at=timezone.now() - timedelta(minutes=31),
+        )
+
+        result = notify_sensor_ice_warning(self.sensor, self._reading(road_temperature=1.0))
+
+        self.assertTrue(result['notified'])
+        self.assertEqual(mock_send.call_count, 2)
+
+    @patch('devices.services.subscriptions.send_digest_push_notification')
+    def test_clear_warning_resets_state(self, mock_send):
+        mock_send.return_value = MagicMock(success=True)
+        notify_sensor_ice_warning(self.sensor, self._reading(road_temperature=1.0))
+        self.assertEqual(PushDigestState.objects.count(), 1)
+
+        notify_sensor_ice_warning(
+            self.sensor,
+            self._reading(road_temperature=5.0, humidity=50.0, air_temperature=5.0),
+        )
+
+        self.assertEqual(PushDigestState.objects.count(), 0)
+
+
+class MunicipalityDigestPushTests(TestCase):
+    def setUp(self):
+        self.sensor_one = Sensor.objects.create(
+            name='Stammbach 1',
+            operator_name='Stammbach',
+            latitude=50.3,
+            longitude=11.9,
+            sensor_type=Sensor.TYPE_STANDARD,
+            active=True,
+            external_id='STB-001',
+        )
+        self.sensor_two = Sensor.objects.create(
+            name='Stammbach 2',
+            operator_name='Stammbach',
+            latitude=50.31,
+            longitude=11.91,
+            sensor_type=Sensor.TYPE_STANDARD,
+            active=True,
+            external_id='STB-002',
+        )
+        AlertPreference.objects.create(
+            user_id='user-digest',
+            severity_filter='orange',
+            notifications_enabled=True,
+            selected_municipality='Stammbach',
+        )
+        PushToken.objects.create(
+            user_id='user-digest',
+            fcm_token='token-digest',
+            platform='android',
+        )
+
+    def _reading(self, sensor, road_temperature: float, humidity: float = 92.0, air_temperature: float = 1.0):
+        return SensorReading.objects.create(
+            sensor=sensor,
+            timestamp=timezone.now(),
+            air_temperature=air_temperature,
+            road_temperature=road_temperature,
+            humidity=humidity,
+        )
+
+    @patch('devices.services.subscriptions.send_digest_push_notification')
+    def test_municipality_digest_groups_multiple_sensors(self, mock_send):
+        mock_send.return_value = MagicMock(success=True)
+        self._reading(self.sensor_one, road_temperature=1.0)
+        self._reading(self.sensor_two, road_temperature=1.0)
+
+        result = notify_sensor_ice_warning(self.sensor_two, self._reading(self.sensor_two, road_temperature=1.0))
+
+        self.assertTrue(result['notified'])
+        mock_send.assert_called_once()
+        digest = mock_send.call_args.kwargs['digest']
+        self.assertEqual(digest.sensor_count, 2)
+        self.assertEqual(set(digest.sensor_ids), {self.sensor_one.id, self.sensor_two.id})
+        self.assertIn('2 Standorten', digest.body)
+
+    def test_build_digest_for_single_sensor(self):
+        preference = AlertPreference.objects.get(user_id='user-digest')
+        self._reading(self.sensor_one, road_temperature=1.0)
+        warnings = collect_warning_sensors(preference)
+        digest = build_warning_digest(preference, warnings)
+
+        self.assertEqual(digest.sensor_count, 1)
+        self.assertEqual(digest.title, 'Warnung: Stammbach 1')
 
 
 class PushServiceTests(TestCase):

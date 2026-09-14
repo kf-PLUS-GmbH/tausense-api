@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>TauSense – Innovationsraum Hofer Land</title>
+</head>
+<body>
+
+<h1>Mobile App „TauSense“</h1>
+
+<p><img src="../img/tausense-logo.png" alt="TauSense Logo" width="120" height="120"></p>
+
+<p>Die App <strong>TauSense</strong> ist Teil des Modellprojekts <strong>hoferLand.digital</strong> des Landkreises Hof. Sie informiert Bürgerinnen und Bürger sowie interessierte Nutzer über aktuelle Messwerte und Glätte- bzw. Eiswarnungen des Taupunktsensorik-Netzwerks im Hofer Land.</p>
+
+<h2>Was die App kann</h2>
+
+<h3>Karte mit Live-Warnungen</h3>
+<p>Alle Taupunktsensoren im Landkreis Hof werden auf einer Karte angezeigt. Jeder Sensor ist farblich markiert:</p>
+<ul>
+  <li><strong>Grün</strong> – keine Warnung</li>
+  <li><strong>Gelb</strong> – mögliche Rutschgefahr</li>
+  <li><strong>Orange</strong> – erhöhte Eisgefahr</li>
+  <li><strong>Rot</strong> – akute Eisbildung wahrscheinlich</li>
+</ul>
+<p>Die Warnstufen werden automatisch aus Straßentemperatur, Taupunkt und Luftfeuchte berechnet.</p>
+
+<h3>Sensordetails</h3>
+<p>Bei Auswahl eines Sensors werden aktuelle Messwerte angezeigt, unter anderem:</p>
+<ul>
+  <li>Lufttemperatur</li>
+  <li>Luftfeuchte</li>
+  <li>Straßentemperatur</li>
+  <li>Taupunkt (berechnet)</li>
+  <li>Zeitstempel der letzten Messung</li>
+</ul>
+
+<h3>Verlaufsdiagramme</h3>
+<p>Für jeden Sensor können historische Messwerte als Diagramm dargestellt werden. Der Zeitraum ist frei wählbar (bis zu 14 Tage).</p>
+
+<h3>Push-Benachrichtigungen</h3>
+<p>Optional können Sie sich bei Eis- und Glättewarnungen per Push-Nachricht informieren lassen. Sie können festlegen:</p>
+<ul>
+  <li>ob Sie nur orange/rote oder nur rote Warnungen erhalten möchten</li>
+  <li>ob Sie eine ganze Gemeinde oder einzelne Sensoren abonnieren</li>
+</ul>
+<p>Warnungen werden gesammelt versendet (z. B. „Erhöhte Eisgefahr an 3 Standorten“), damit nicht für jeden Sensor einzeln gemeldet wird.</p>
+
+<h2>Technische Grundlagen</h2>
+<p>Die Sensoren übermitteln ihre Messwerte per LoRaWAN an unser Backend. Die App ruft die aufbereiteten Daten über eine gesicherte API (HTTPS) ab. Das Backend wird in Rechenzentren in Deutschland betrieben.</p>
+<p>Für Push-Benachrichtigungen wird Firebase Cloud Messaging (Google) genutzt. Es ist kein Benutzerkonto erforderlich.</p>
+
+<h2>Datenschutz</h2>
+<p>Informationen zur Verarbeitung personenbezogener Daten finden Sie in unserer <a href="datenschutzerklaerung.html">Datenschutzerklärung</a> (Abschnitt 8.2 und 12.4).</p>
+
+<h2>Kontakt</h2>
+<p>
+  Landratsamt Hof<br>
+  Projektbüro hoferLand.digital (Modellprojekt Smart Cities)<br>
+  Schaumbergstraße 14<br>
+  95032 Hof<br>
+  Telefon: 09281/57-0<br>
+  E-Mail: <a href="mailto:smartcity@landkreis-hof.de">smartcity@landkreis-hof.de</a>
+</p>
+
+<p>Weitere Informationen zum Projekt: <a href="https://hoferland-digital.de/">hoferland-digital.de</a></p>
+
+</body>
+</html>

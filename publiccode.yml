@@ -1,0 +1,103 @@
+publiccodeYmlVersion: "0.2"
+
+name: TauSense API
+
+url: "https://github.com/kf-PLUS-GmbH/tausense-api.git"
+landingURL: "https://hoferland-digital.de/"
+
+softwareVersion: "1.0"
+releaseDate: "2026-08-11"
+
+logo: "img/tausense-logo.png"
+
+platforms:
+  - android
+  - ios
+
+categories:
+  - geospatial-information
+  - environmental-protection
+
+usedBy:
+  - Landkreis Hof
+
+developmentStatus: beta
+
+softwareType: standalone/backend
+
+organisation:
+  uri: "https://www.kf-plus.de/"
+  name: kf-PLUS GmbH
+
+intendedAudience:
+  scope:
+    - local-authorities
+    - citizens
+  countries:
+    - DE
+
+description:
+  de:
+    localisedName: TauSense
+    genericName: Taupunktsensorik-Backend
+    shortDescription: >
+      API-Backend für die mobile App TauSense – Eis- und Glättewarnungen
+      aus dem Taupunktsensorik-Netz im Landkreis Hof.
+    longDescription: >
+      Dieses Repository enthält das Django-REST-Backend für **TauSense**, die mobile
+      App des Modellprojekts hoferLand.digital (Landkreis Hof). Das System empfängt
+      LoRaWAN-Messwerte von Taupunktsensoren, speichert sie in PostgreSQL und stellt
+      sie über eine HTTPS-API bereit – inklusive Kartenwarnungen, Verlaufsdiagrammen
+      und optionaler Push-Benachrichtigungen bei Eisgefahr.
+    features:
+      - LoRaWAN-Webhook zur Messwert-Erfassung
+      - REST-API mit OpenAPI-Dokumentation (Swagger/ReDoc)
+      - Eiswarnlogik mit Ampelstatus (grün, gelb, orange, rot)
+      - Verlaufsdaten bis 14 Tage pro Sensor
+      - Push-Digest-Benachrichtigungen (Firebase Cloud Messaging)
+      - Abonnements nach Gemeinde oder einzelnen Sensoren
+    documentation: "https://github.com/kf-PLUS-GmbH/tausense-api/blob/main/README.md"
+    apiDocumentation: "https://github.com/kf-PLUS-GmbH/tausense-api#api"
+  en:
+    localisedName: TauSense
+    genericName: Dew-point sensor API
+    shortDescription: >
+      API backend for the TauSense mobile app – ice and slip warnings
+      from the dew-point sensor network in Hof district, Germany.
+    longDescription: >
+      This repository provides the Django REST backend for **TauSense**, the mobile
+      app of the hoferLand.digital smart city project (Landkreis Hof). It ingests
+      LoRaWAN sensor readings, stores them in PostgreSQL, and exposes them via
+      a HTTPS API including map warnings, history charts, and optional push alerts.
+    features:
+      - LoRaWAN webhook ingestion
+      - REST API with OpenAPI (Swagger/ReDoc)
+      - Ice warning levels (green, yellow, orange, red)
+      - Up to 14 days of reading history per sensor
+      - Digest push notifications (Firebase Cloud Messaging)
+      - Subscriptions by municipality or sensor
+
+legal:
+  license: Apache-2.0
+  mainCopyrightOwner: kf-PLUS GmbH
+
+maintenance:
+  type: internal
+  contacts:
+    - name: Patrick Knopf
+      email: info@kf-plus.de
+      phone: "+49 9256 95157"
+      affiliation: kf-PLUS GmbH
+
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - de
+    - en
+
+dependsOn:
+  open:
+    - name: Django
+      versionMin: "5.2"
+    - name: PostgreSQL
+      versionMin: "14"

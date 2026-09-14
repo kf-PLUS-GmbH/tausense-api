@@ -166,35 +166,88 @@ POST /api/devices/register/
 After each webhook ingestion (`POST /api/webhook/`), the backend:
 
 1. evaluates the ice warning level for the new reading
-2. compares it with the previous reading
-3. sends a push when a **new warning** appears or the warning **escalates**
-4. finds matching device tokens
-5. sends FCM messages to all matching devices
+2. finds subscribed users whose `severity_filter` matches the alert color
+3. sends a push when:
+   - a warning appears for the first time
+   - the warning **escalates** (for example orange → red, immediately)
+   - the warning **stays active** and the last push for that user+sensor was at least **30 minutes** ago
+4. sends FCM messages to all matching devices for that user
 
 No push is sent when:
 
-- the warning level stays the same
-- the warning is cleared (`none`)
+- the warning is cleared (`none`) — stored reminder state is reset
 - the warning is downgraded
+- the same warning level was already pushed within the last 30 minutes
+
+Configure the reminder interval:
+
+```env
+PUSH_REMINDER_MINUTES=30
+```
 
 ## Push payload
 
-Function: `send_push_notification()`
+Automatic ice-warning pushes are sent as a grouped **digest** (`type=digest`).
 
-Data payload sent to Flutter:
+Function: `send_digest_push_notification()`
+
+### Digest example (multiple sensors in one municipality)
+
+Notification:
+
+- `title`: `Warnung: Stammbach`
+- `body`: `Erhöhte Eisgefahr an 3 Standorten`
+
+Data payload for Flutter:
 
 ```json
 {
-  "sensor_id": "5",
+  "type": "digest",
+  "alert_status": "orange",
+  "sensor_count": "3",
+  "sensor_ids": "60,61,62",
+  "sensor_names": "Stammbach 1|Stammbach 2|Stammbach 3",
+  "municipality_name": "Stammbach",
+  "primary_sensor_id": "60",
+  "worst_level": "increased_ice",
+  "title": "Warnung: Stammbach",
+  "body": "Erhöhte Eisgefahr an 3 Standorten"
+}
+```
+
+### Single-sensor digest example
+
+When only one subscribed sensor is in warning state, the digest still uses `type=digest`:
+
+```json
+{
+  "type": "digest",
   "alert_status": "red",
-  "sensor_name": "B173 Hof Nord",
-  "municipality_name": "Hof",
-  "title": "Warnung: B173 Hof Nord",
+  "sensor_count": "1",
+  "sensor_ids": "60",
+  "sensor_names": "Stammbach 1",
+  "municipality_name": "Stammbach",
+  "primary_sensor_id": "60",
+  "worst_level": "acute_ice",
+  "title": "Warnung: Stammbach 1",
   "body": "Akute Eisbildung wahrscheinlich"
 }
 ```
 
+All data values are strings because FCM requires string map values.
+
 The message also includes a notification payload with `title` and `body` so Android/iOS can display it when the app is in the background.
+
+The manual test endpoint still sends a legacy single-sensor payload with `type=single`.
+
+### When a digest is sent
+
+- first warning in the user's subscribed scope
+- warning severity increases (for example orange to red)
+- number of warning sensors increases (for example 1 to 3 sensors)
+- same warning situation repeats after `PUSH_REMINDER_MINUTES` (default 30)
+
+One user receives at most one digest push per evaluation cycle, even if multiple sensors in the same municipality are affected.
 
 ### Manual push testing
 

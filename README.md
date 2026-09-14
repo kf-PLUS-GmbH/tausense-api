@@ -1,6 +1,8 @@
-# Taupunktsensorik API Backend
+# TauSense API Backend
 
-Minimal, API-first Django backend for Smart City IoT sensor data in Landkreis Hof.
+Minimal, API-first Django backend for the **TauSense** mobile app and the Taupunktsensorik sensor network in Landkreis Hof (hoferLand.digital).
+
+![TauSense logo](img/tausense-logo.png)
 
 ## Stack
 
@@ -190,3 +192,10 @@ variables and example requests.
 - ReDoc: `/api/docs/redoc/`
 
 This schema is designed to be consumed by Flutter client generators.
+
+## Open source metadata
+
+- `publiccode.yml` – metadata for catalogs such as [OpenCode](https://yml.publiccode.tools/) / Developers Italia
+- App logo: `img/tausense-logo.png`
+- Product page (HTML): [docs/app-produktseite.html](docs/app-produktseite.html)
+- Privacy policy extension (HTML): [docs/datenschutzerklaerung.html](docs/datenschutzerklaerung.html)

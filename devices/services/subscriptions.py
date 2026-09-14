@@ -1,15 +1,18 @@
 import logging
+from datetime import timedelta
+
+from django.conf import settings
+from django.utils import timezone
 
 from core.ice_warning import (
-    ICE_WARNING_LABELS,
     ICE_WARNING_NONE,
-    ICE_WARNING_SEVERITY,
     alert_status_for_level,
     evaluate_ice_warning,
 )
 from core.utils import calculate_dew_point
-from devices.models import AlertPreference, PushToken
-from devices.services.push import send_push_notification
+from devices.models import AlertPreference, PushDigestState, PushNotificationState, PushToken
+from devices.services.digest import build_warning_digest, collect_warning_sensors
+from devices.services.push import send_digest_push_notification
 from readings.models import SensorReading
 from sensors.models import Sensor
 
@@ -52,16 +55,30 @@ def matches_subscription(preference: AlertPreference, sensor: Sensor) -> bool:
     return False
 
 
-def find_subscribed_push_tokens(sensor: Sensor, alert_status: str) -> list[PushToken]:
+def find_subscribed_preferences(
+    sensor: Sensor,
+    alert_status: str,
+) -> list[tuple[AlertPreference, list[PushToken]]]:
     preferences = AlertPreference.objects.filter(notifications_enabled=True)
-    matched_tokens: dict[str, PushToken] = {}
+    matched: list[tuple[AlertPreference, list[PushToken]]] = []
 
     for preference in preferences:
         if not matches_severity_filter(preference.severity_filter, alert_status):
             continue
         if not matches_subscription(preference, sensor):
             continue
-        for token in PushToken.objects.filter(user_id=preference.user_id):
+        tokens = list(PushToken.objects.filter(user_id=preference.user_id))
+        if tokens:
+            matched.append((preference, tokens))
+
+    return matched
+
+
+def find_subscribed_push_tokens(sensor: Sensor, alert_status: str) -> list[PushToken]:
+    matched_tokens: dict[str, PushToken] = {}
+
+    for _preference, tokens in find_subscribed_preferences(sensor, alert_status):
+        for token in tokens:
             matched_tokens[token.fcm_token] = token
 
     return list(matched_tokens.values())
@@ -72,82 +89,124 @@ def _ice_warning_level_for_reading(reading: SensorReading) -> str:
     return evaluate_ice_warning(reading.road_temperature, dew_point, reading.humidity)
 
 
-def _previous_reading(sensor: Sensor, reading: SensorReading) -> SensorReading | None:
-    return (
-        SensorReading.objects.filter(sensor=sensor, timestamp__lt=reading.timestamp)
-        .order_by('-timestamp')
-        .first()
+def _reminder_interval() -> timedelta:
+    minutes = getattr(settings, 'PUSH_REMINDER_MINUTES', 30)
+    return timedelta(minutes=minutes)
+
+
+def _should_send_digest(
+    *,
+    state: PushDigestState | None,
+    worst_severity: int,
+    sensor_count: int,
+    force: bool = False,
+) -> bool:
+    if force:
+        return True
+    if sensor_count == 0:
+        return False
+    if state is None:
+        return True
+    if worst_severity > state.last_worst_severity:
+        return True
+    if sensor_count > state.last_sensor_count:
+        return True
+    elapsed = timezone.now() - state.last_sent_at
+    return elapsed >= _reminder_interval()
+
+
+def _record_digest_state(user_id: str, *, worst_severity: int, sensor_count: int) -> None:
+    PushDigestState.objects.update_or_create(
+        user_id=user_id,
+        defaults={
+            'last_worst_severity': worst_severity,
+            'last_sensor_count': sensor_count,
+            'last_sent_at': timezone.now(),
+        },
     )
 
 
-def _should_notify(previous_level: str, new_level: str) -> bool:
-    if new_level == ICE_WARNING_NONE:
-        return False
-    if previous_level == new_level:
-        return False
-    previous_severity = ICE_WARNING_SEVERITY.get(previous_level, 0)
-    new_severity = ICE_WARNING_SEVERITY.get(new_level, 0)
-    return new_severity > previous_severity
+def _reset_digest_state_if_cleared(preference: AlertPreference) -> None:
+    if not collect_warning_sensors(preference):
+        PushDigestState.objects.filter(user_id=preference.user_id).delete()
+
+
+def _preferences_for_sensor(sensor: Sensor) -> list[AlertPreference]:
+    preferences = AlertPreference.objects.filter(notifications_enabled=True)
+    return [preference for preference in preferences if matches_subscription(preference, sensor)]
 
 
 def notify_sensor_ice_warning(sensor: Sensor, reading: SensorReading, *, force: bool = False) -> dict:
     """
-    Evaluate ice warning for a new reading and send push notifications when
-    a new warning is created or escalated.
+    Evaluate ice warning for a new reading and send grouped digest push notifications.
     """
     new_level = _ice_warning_level_for_reading(reading)
-    previous = _previous_reading(sensor, reading)
-    previous_level = _ice_warning_level_for_reading(previous) if previous else ICE_WARNING_NONE
 
-    if not force and not _should_notify(previous_level, new_level):
+    if new_level == ICE_WARNING_NONE:
+        PushNotificationState.objects.filter(sensor=sensor).delete()
+        for preference in _preferences_for_sensor(sensor):
+            _reset_digest_state_if_cleared(preference)
         return {
             'notified': False,
-            'previous_level': previous_level,
             'new_level': new_level,
             'sent_count': 0,
             'failed_count': 0,
         }
 
-    municipality_name = sensor.municipality.name if sensor.municipality else ''
-    sensor_name = sensor.display_name or sensor.name
     alert_status = alert_status_for_level(new_level)
-    title = f'Warnung: {sensor_name}'
-    body = ICE_WARNING_LABELS[new_level]
+    candidates = find_subscribed_preferences(sensor, alert_status)
 
-    tokens = find_subscribed_push_tokens(sensor, alert_status)
     sent_count = 0
     failed_count = 0
+    notified_users = 0
+    processed_users: set[str] = set()
 
-    for token in tokens:
-        result = send_push_notification(
-            fcm_token=token.fcm_token,
-            sensor_id=sensor.id,
-            alert_status=alert_status,
-            sensor_name=sensor_name,
-            municipality_name=municipality_name,
-            title=title,
-            body=body,
+    for preference, tokens in candidates:
+        if preference.user_id in processed_users:
+            continue
+        processed_users.add(preference.user_id)
+
+        warnings = collect_warning_sensors(preference)
+        digest = build_warning_digest(preference, warnings)
+        if digest is None:
+            continue
+
+        state = PushDigestState.objects.filter(user_id=preference.user_id).first()
+        if not _should_send_digest(
+            state=state,
+            worst_severity=digest.worst_severity,
+            sensor_count=digest.sensor_count,
+            force=force,
+        ):
+            continue
+
+        notified_users += 1
+        for token in tokens:
+            result = send_digest_push_notification(fcm_token=token.fcm_token, digest=digest)
+            if result.success:
+                sent_count += 1
+            else:
+                failed_count += 1
+
+        _record_digest_state(
+            preference.user_id,
+            worst_severity=digest.worst_severity,
+            sensor_count=digest.sensor_count,
         )
-        if result.success:
-            sent_count += 1
-        else:
-            failed_count += 1
 
     logger.info(
-        'Ice warning push for sensor_id=%s (%s -> %s): %s sent, %s failed, %s tokens matched.',
+        'Ice warning digest for sensor_id=%s (%s): %s users notified, %s sent, %s failed.',
         sensor.id,
-        previous_level,
         new_level,
+        notified_users,
         sent_count,
         failed_count,
-        len(tokens),
     )
 
     return {
-        'notified': True,
-        'previous_level': previous_level,
+        'notified': notified_users > 0,
         'new_level': new_level,
-        'matched_tokens': len(tokens),
+        'matched_users': notified_users,
         'sent_count': sent_count,
         'failed_count': failed_count,
     }
@@ -170,6 +229,7 @@ def send_broadcast_test_pushes(
         ICE_WARNING_NONE,
         ICE_WARNING_POSSIBLE_SLIP,
     )
+    from devices.services.push import send_push_notification
 
     status_labels = {
         'green': ICE_WARNING_LABELS[ICE_WARNING_NONE],
