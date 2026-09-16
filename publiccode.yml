@@ -1,8 +1,8 @@
-publiccodeYmlVersion: "0.2"
+publiccodeYmlVersion: "0.4"
 
 name: TauSense API
 
-url: "https://github.com/kf-PLUS-GmbH/tausense-api.git"
+url: "https://gitlab.opencode.de/oc000148042427/tausense-api"
 landingURL: "https://hoferland-digital.de/"
 
 softwareVersion: "1.0"
@@ -44,11 +44,24 @@ description:
       API-Backend für die mobile App TauSense – Eis- und Glättewarnungen
       aus dem Taupunktsensorik-Netz im Landkreis Hof.
     longDescription: >
-      Dieses Repository enthält das Django-REST-Backend für **TauSense**, die mobile
-      App des Modellprojekts hoferLand.digital (Landkreis Hof). Das System empfängt
-      LoRaWAN-Messwerte von Taupunktsensoren, speichert sie in PostgreSQL und stellt
-      sie über eine HTTPS-API bereit – inklusive Kartenwarnungen, Verlaufsdiagrammen
-      und optionaler Push-Benachrichtigungen bei Eisgefahr.
+      **TauSense** ist die mobile Anwendung des Modellprojekts hoferLand.digital im
+      Landkreis Hof. Sie informiert Bürgerinnen und Bürger sowie Kommunen über
+      Glätte- und Eisgefahr entlang des Straßennetzes – gestützt auf ein Netz aus
+      Taupunktsensoren (LoRaWAN), die Lufttemperatur, Luftfeuchte und Straßentemperatur
+      erfassen.
+
+      Dieses Repository enthält das zugehörige **API-Backend**: Es nimmt Messwerte
+      von der Sensor-Infrastruktur entgegen, speichert sie dauerhaft und berechnet
+      daraus Warnstufen (Ampel von grün bis rot). Die **TauSense-App** (Android und iOS)
+      ruft diese Daten ab – für eine interaktive Karte mit aktuellen Warnungen,
+      Detailansichten einzelner Standorte und Verlaufsdiagramme der letzten Tage.
+
+      Nutzerinnen und Nutzer können Gemeinden oder einzelne Sensoren abonnieren und
+      bei anhaltender Warnlage optional **Push-Benachrichtigungen** erhalten. Die
+      Software ist als Open-Source-Lösung (Apache-2.0) dokumentiert und kann von
+      anderen Gebietskörperschaften als Referenz für ähnliche Sensorik-Projekte
+      dienen. Technische Integrationsdetails (Webhook, REST, OpenAPI) stehen in der
+      Projekt-Dokumentation im Repository.
     features:
       - LoRaWAN-Webhook zur Messwert-Erfassung
       - REST-API mit OpenAPI-Dokumentation (Swagger/ReDoc)
@@ -56,8 +69,8 @@ description:
       - Verlaufsdaten bis 14 Tage pro Sensor
       - Push-Digest-Benachrichtigungen (Firebase Cloud Messaging)
       - Abonnements nach Gemeinde oder einzelnen Sensoren
-    documentation: "https://github.com/kf-PLUS-GmbH/tausense-api/blob/main/README.md"
-    apiDocumentation: "https://github.com/kf-PLUS-GmbH/tausense-api#api"
+    documentation: "https://gitlab.opencode.de/oc000148042427/tausense-api/-/blob/main/README.md"
+    apiDocumentation: "https://gitlab.opencode.de/oc000148042427/tausense-api/-/blob/main/README.md#api"
   en:
     localisedName: TauSense
     genericName: Dew-point sensor API
@@ -65,10 +78,21 @@ description:
       API backend for the TauSense mobile app – ice and slip warnings
       from the dew-point sensor network in Hof district, Germany.
     longDescription: >
-      This repository provides the Django REST backend for **TauSense**, the mobile
-      app of the hoferLand.digital smart city project (Landkreis Hof). It ingests
-      LoRaWAN sensor readings, stores them in PostgreSQL, and exposes them via
-      a HTTPS API including map warnings, history charts, and optional push alerts.
+      **TauSense** is the mobile application of the hoferLand.digital pilot project
+      in Hof district, Germany. It helps citizens and local authorities stay informed
+      about slip and ice risk on the road network, based on a LoRaWAN dew-point
+      sensor network measuring air temperature, humidity, and road surface temperature.
+
+      This repository is the **API backend** for that app: it receives sensor
+      readings, stores them, and derives warning levels (green through red). The
+      **TauSense app** (Android and iOS) consumes the API for an interactive warning
+      map, sensor detail views, and multi-day history charts.
+
+      Users can subscribe to municipalities or individual sensors and optionally
+      receive **push notifications** while a warning persists. The software is
+      released under Apache-2.0 and documented for reuse by other public-sector
+      sensor projects. Integration details (webhook, REST, OpenAPI) are in the
+      repository documentation.
     features:
       - LoRaWAN webhook ingestion
       - REST API with OpenAPI (Swagger/ReDoc)

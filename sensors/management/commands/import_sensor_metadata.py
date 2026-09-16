@@ -4,15 +4,6 @@ from decimal import Decimal
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
-
-from sensors.models import Sensor
-
-import csv
-import re
-from decimal import Decimal
-from pathlib import Path
-
-from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from sensors.models import Sensor
@@ -40,6 +31,9 @@ HEADER_MAP = {
     'standort (gps/w3w)': 'coordinates',
     'coordinates': 'coordinates',
 }
+
+HEADER_ROW_SCAN_LIMIT = 10
+KNOWN_HEADER_LABELS = frozenset(HEADER_MAP.keys())
 
 
 class Command(BaseCommand):
@@ -88,6 +82,14 @@ class Command(BaseCommand):
                     continue
 
                 device_name = row.get('device_name', '').strip()
+                if self._is_header_label(device_name):
+                    skipped += 1
+                    self.stderr.write(
+                        f'Row {row_number}: skipped header row '
+                        f'({device_name!r})'
+                    )
+                    continue
+
                 operator_name = row.get('operator_name', '').strip()
                 display_name = row.get('display_name', '').strip()
                 location_description = row.get(
@@ -179,35 +181,17 @@ class Command(BaseCommand):
 
         yield from self._dict_rows(rows)
 
-
     def _dict_rows(self, rows):
         if not rows:
             return
 
-        # Suche automatisch die tatsächliche Header-Zeile.
-        #
-        # Die Excel/CSV-Datei kann vor dem eigentlichen Header
-        # noch Titelzeilen oder Leerzeilen enthalten.
-        header_index = None
+        header_index, mapped_headers = self._locate_header_row(rows)
+        has_known_header = header_index is not None
 
-        for index, row in enumerate(rows):
-            headers = [
-                self._normalize_header(value)
-                for value in row
-            ]
-
-            mapped_headers = [
-                HEADER_MAP.get(header, '')
-                for header in headers
-            ]
-
-            if 'device_name' in mapped_headers:
-                header_index = index
-                break
-
-        # Wenn kein Header gefunden wurde, gehen wir weiterhin
-        # davon aus, dass die Datei keine Header-Zeile besitzt.
-        if header_index is None:
+        if has_known_header:
+            data_rows = rows[header_index + 1:]
+            data_start_row = header_index + 2
+        else:
             mapped_headers = [
                 'device_name',
                 'operator_name',
@@ -215,41 +199,19 @@ class Command(BaseCommand):
                 'location_description',
                 'coordinates',
             ]
-
             data_rows = rows
-
-            start_row_number = 1
-
-        else:
-            header_row = rows[header_index]
-
-            headers = [
-                self._normalize_header(value)
-                for value in header_row
-            ]
-
-            mapped_headers = [
-                HEADER_MAP.get(header, '')
-                for header in headers
-            ]
-
-            # Alles vor dem eigentlichen Header wird ignoriert.
-            data_rows = rows[header_index + 1:]
-
-            # +1, weil Excel/CSV-Zeilennummern bei 1 beginnen.
-            start_row_number = header_index + 2
+            data_start_row = 1
 
         for row_number, row in enumerate(
-                data_rows,
-                start=start_row_number,
+            data_rows,
+            start=data_start_row,
         ):
-            # Leere Zeilen ignorieren.
             if not row:
                 continue
 
             if not ''.join(
-                    str(value or '')
-                    for value in row
+                str(value or '')
+                for value in row
             ).strip():
                 continue
 
@@ -266,13 +228,29 @@ class Command(BaseCommand):
                 if header
             }
 
-
     def _normalize_header(self, value) -> str:
         return re.sub(
             r'\s+',
             ' ',
             str(value or '').strip().lower(),
         )
+
+    def _is_header_label(self, value: str) -> bool:
+        return self._normalize_header(value) in KNOWN_HEADER_LABELS
+
+    def _locate_header_row(self, rows):
+        for index, row in enumerate(rows[:HEADER_ROW_SCAN_LIMIT]):
+            normalized = [
+                self._normalize_header(value)
+                for value in row
+            ]
+            mapped = [
+                HEADER_MAP.get(header, '')
+                for header in normalized
+            ]
+            if 'device_name' in mapped:
+                return index, mapped
+        return None, None
 
     def _coordinates(
         self,
