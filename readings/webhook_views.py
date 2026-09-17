@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import OpenApiExample, extend_schema
@@ -7,6 +10,13 @@ from rest_framework.views import APIView
 
 from readings.permissions import WebhookSecretPermission
 from readings.services.ingestion import WebhookIngestionError, ingest_lorawan_payload
+from readings.services.webhook_debug import format_payload_for_log, summarize_webhook_payload
+from readings.services.webhook_normalize import (
+    normalize_incoming_webhook_payload,
+    should_ignore_webhook_event,
+)
+
+logger = logging.getLogger('readings.webhook')
 from readings.webhook_serializers import (
     LorawanWebhookPayloadSerializer,
     WebhookBulkIngestResponseSerializer,
@@ -27,6 +37,22 @@ class LorawanWebhookView(APIView):
         if isinstance(data, list):
             return data, True
         return [data], False
+
+    def _log_incoming(self, event, raw_item, normalized, *, outcome: str, extra: str = ''):
+        summary = summarize_webhook_payload(raw_item)
+        normalized_keys = sorted(normalized.keys()) if isinstance(normalized, dict) else []
+        msg = (
+            f'webhook {outcome} event={event!r} summary={summary} '
+            f'normalized_keys={normalized_keys}'
+        )
+        if extra:
+            msg = f'{msg} {extra}'
+        if getattr(settings, 'WEBHOOK_LOG_PAYLOAD', False):
+            msg = f'{msg} body={format_payload_for_log(raw_item)}'
+        if outcome == 'rejected':
+            logger.warning(msg)
+        else:
+            logger.info(msg)
 
     def _response_item(self, reading) -> dict:
         return {
@@ -70,21 +96,52 @@ class LorawanWebhookView(APIView):
         ),
     )
     def post(self, request):
+        event = request.query_params.get('event')
+        if should_ignore_webhook_event(event):
+            return Response(
+                {'status': 'ignored', 'event': event},
+                status=status.HTTP_200_OK,
+            )
+
         payloads, is_bulk = self._normalize_payload(request.data)
         if not payloads:
             return Response({'detail': 'Request body must be a JSON object or array.'}, status=400)
 
         results = []
         for index, item in enumerate(payloads):
-            serializer = LorawanWebhookPayloadSerializer(data=item)
+            if not isinstance(item, dict):
+                return Response(
+                    {
+                        'detail': 'Each payload entry must be a JSON object.',
+                        'index': index,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            raw_item = item
+            normalized = normalize_incoming_webhook_payload(raw_item)
+            serializer = LorawanWebhookPayloadSerializer(data=normalized)
             if not serializer.is_valid():
+                self._log_incoming(
+                    event,
+                    raw_item,
+                    normalized,
+                    outcome='rejected',
+                    extra=f'validation_errors={serializer.errors}',
+                )
                 return Response(
                     {'detail': 'Validation failed.', 'index': index, 'errors': serializer.errors},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             try:
-                reading = ingest_lorawan_payload(item)
+                reading = ingest_lorawan_payload(normalized, raw_payload=raw_item)
             except WebhookIngestionError as exc:
+                self._log_incoming(
+                    event,
+                    raw_item,
+                    normalized,
+                    outcome='rejected',
+                    extra=f'ingestion_error={exc.message!r} field={exc.field!r}',
+                )
                 body = {'detail': exc.message}
                 if exc.field:
                     body['field'] = exc.field
@@ -92,6 +149,7 @@ class LorawanWebhookView(APIView):
                     body['index'] = index
                 return Response(body, status=status.HTTP_400_BAD_REQUEST)
 
+            self._log_incoming(event, raw_item, normalized, outcome='accepted')
             results.append(self._response_item(reading))
 
         if is_bulk:

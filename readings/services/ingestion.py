@@ -130,7 +130,11 @@ def _maybe_update_sensor_coordinates(sensor: Sensor, payload: dict[str, Any]) ->
 
 
 @transaction.atomic
-def ingest_lorawan_payload(payload: dict[str, Any]) -> SensorReading:
+def ingest_lorawan_payload(
+    payload: dict[str, Any],
+    *,
+    raw_payload: dict[str, Any] | None = None,
+) -> SensorReading:
     sensor = _resolve_sensor(payload)
     timestamp = _parse_timestamp(payload)
     air_temperature = _pick_float(
@@ -169,7 +173,7 @@ def ingest_lorawan_payload(payload: dict[str, Any]) -> SensorReading:
             'battery_voltage': _optional_float(payload, 'battery_voltage'),
             'latitude': _optional_decimal(payload, 'lat'),
             'longitude': _optional_decimal(payload, 'lon'),
-            'raw_data': payload,
+            'raw_data': raw_payload if raw_payload is not None else payload,
         },
     )
 

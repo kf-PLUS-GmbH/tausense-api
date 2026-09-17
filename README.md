@@ -94,6 +94,12 @@ the first webhook later attaches `deviceEui` to the same sensor via `Sensor.exte
 
 Receives LoRaWAN payloads and writes `SensorReading` rows to the database.
 
+**ChirpStack HTTP integration** posts to `/api/webhook/?event=up` with nested JSON
+(`deviceInfo.devEui`, decoded values in `object`). The backend flattens that
+automatically. The device profile must expose decoded fields such as
+`air_temperature_radiation_shield`, `air_humidity_radiation_shield`, and
+`surface_temperature` in `object` (via payload codec).
+
 When `WEBHOOK_SECRET` is set in `.env` (required for `RELEASE_MODE=testing` and
 `release`), every request must include:
 
@@ -123,6 +129,13 @@ Mapping:
 | full JSON body | `raw_data` |
 
 Unknown sensors are auto-created **without** municipality assignment when `WEBHOOK_AUTO_CREATE_SENSOR=true`. Gemeinde kann später im Admin zugeordnet werden.
+
+**Debug sender format (DKS vs Landratsamt/ChirpStack):**
+
+- Rejected webhooks log a **summary** to journalctl (`readings.webhook`, WARNING).
+- Set `WEBHOOK_LOG_PAYLOAD=true` in `.env` to log the **full JSON body** (short-term only).
+- Compare last successful payloads: `python manage.py show_webhook_payload_samples --limit 5`
+  (uses `SensorReading.raw_data` from the DB).
 
 Example:
 

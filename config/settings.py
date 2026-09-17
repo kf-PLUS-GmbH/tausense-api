@@ -157,6 +157,7 @@ SPECTACULAR_SETTINGS = {
 
 WEBHOOK_AUTO_CREATE_SENSOR = os.environ.get('WEBHOOK_AUTO_CREATE_SENSOR', 'true').lower() == 'true'
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '').strip()
+WEBHOOK_LOG_PAYLOAD = os.environ.get('WEBHOOK_LOG_PAYLOAD', 'false').lower() == 'true'
 if RELEASE_MODE in ('release', 'testing') and not WEBHOOK_SECRET:
     raise ImproperlyConfigured(
         'WEBHOOK_SECRET is required when RELEASE_MODE is release or testing. '
@@ -188,6 +189,11 @@ LOGGING = {
     },
     'loggers': {
         'devices': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'readings.webhook': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
