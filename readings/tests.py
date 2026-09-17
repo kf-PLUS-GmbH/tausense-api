@@ -1,12 +1,20 @@
 from datetime import timedelta
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from readings.models import SensorReading
 from sensors.models import Sensor
+
+WEBHOOK_PAYLOAD = {
+    'deviceEui': '70B3D57BA0009999',
+    'deviceName': 'WEBHOOK-AUTH-TEST',
+    'timestamp': '2026-06-03T09:10:06.316Z',
+    'air_temperature_radiation_shield': 12.0,
+    'air_humidity_radiation_shield': 80.0,
+}
 
 
 class ReadingHistoryAPITests(TestCase):
@@ -91,3 +99,51 @@ class ReadingHistoryAPITests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()['field'], 'sensor')
+
+
+@override_settings(WEBHOOK_SECRET='hook-secret')
+class WebhookAuthTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/webhook/'
+
+    def test_webhook_rejects_missing_authorization(self):
+        response = self.client.post(self.url, WEBHOOK_PAYLOAD, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(SensorReading.objects.count(), 0)
+
+    def test_webhook_rejects_wrong_bearer_token(self):
+        response = self.client.post(
+            self.url,
+            WEBHOOK_PAYLOAD,
+            format='json',
+            HTTP_AUTHORIZATION='Bearer wrong',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(SensorReading.objects.count(), 0)
+
+    def test_webhook_accepts_valid_bearer_token(self):
+        response = self.client.post(
+            self.url,
+            WEBHOOK_PAYLOAD,
+            format='json',
+            HTTP_AUTHORIZATION='Bearer hook-secret',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(SensorReading.objects.count(), 1)
+
+
+@override_settings(WEBHOOK_SECRET='')
+class WebhookAuthOptionalTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/webhook/'
+
+    def test_webhook_allows_request_when_secret_not_configured(self):
+        response = self.client.post(self.url, WEBHOOK_PAYLOAD, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(SensorReading.objects.count(), 1)

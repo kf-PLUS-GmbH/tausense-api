@@ -156,6 +156,13 @@ SPECTACULAR_SETTINGS = {
 }
 
 WEBHOOK_AUTO_CREATE_SENSOR = os.environ.get('WEBHOOK_AUTO_CREATE_SENSOR', 'true').lower() == 'true'
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '').strip()
+if RELEASE_MODE in ('release', 'testing') and not WEBHOOK_SECRET:
+    raise ImproperlyConfigured(
+        'WEBHOOK_SECRET is required when RELEASE_MODE is release or testing. '
+        'Set a strong secret in .env and configure the LoRaWAN integration to send '
+        'Authorization: Bearer <WEBHOOK_SECRET>.'
+    )
 
 FIREBASE_ENABLED = os.environ.get('FIREBASE_ENABLED', 'true').lower() == 'true'
 FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '').strip()

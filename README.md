@@ -94,6 +94,17 @@ the first webhook later attaches `deviceEui` to the same sensor via `Sensor.exte
 
 Receives LoRaWAN payloads and writes `SensorReading` rows to the database.
 
+When `WEBHOOK_SECRET` is set in `.env` (required for `RELEASE_MODE=testing` and
+`release`), every request must include:
+
+```http
+Authorization: Bearer <WEBHOOK_SECRET>
+```
+
+Pass the same secret to whoever configures the LoRaWAN network server / HTTP
+integration. With `RELEASE_MODE=dev_local` and an empty `WEBHOOK_SECRET`, the
+endpoint stays open for local testing only.
+
 Mapping:
 
 | Payload field | Database |
@@ -118,6 +129,7 @@ Example:
 ```bash
 curl -X POST http://localhost:8000/api/webhook/ \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-webhook-secret" \
   -d "{\"deviceEui\":\"70B3D57BA000638D\",\"deviceName\":\"MUB-TPK-0001\",\"timestamp\":\"2026-06-03T09:10:06.316Z\",\"air_temperature_radiation_shield\":12.84,\"air_humidity_radiation_shield\":83.77,\"surface_temperature\":24.8,\"lat\":50.22764,\"lon\":11.76708}"
 ```
 

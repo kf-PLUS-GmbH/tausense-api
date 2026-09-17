@@ -2,10 +2,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from readings.permissions import WebhookSecretPermission
 from readings.services.ingestion import WebhookIngestionError, ingest_lorawan_payload
 from readings.webhook_serializers import (
     LorawanWebhookPayloadSerializer,
@@ -20,7 +20,7 @@ class LorawanWebhookView(APIView):
     Receives LoRaWAN sensor payloads and persists them as SensorReading rows.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [WebhookSecretPermission]
     authentication_classes = []
 
     def _normalize_payload(self, data):
@@ -65,7 +65,8 @@ class LorawanWebhookView(APIView):
         description=(
             'Ingest LoRaWAN sensor data into PostgreSQL. '
             'Maps deviceEui to Sensor.external_id and stores a SensorReading. '
-            'Unknown sensors are auto-created without municipality when WEBHOOK_AUTO_CREATE_SENSOR=true.'
+            'Unknown sensors are auto-created without municipality when WEBHOOK_AUTO_CREATE_SENSOR=true. '
+            'When WEBHOOK_SECRET is set, send header Authorization: Bearer <WEBHOOK_SECRET>.'
         ),
     )
     def post(self, request):
