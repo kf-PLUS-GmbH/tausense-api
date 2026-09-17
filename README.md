@@ -136,6 +136,7 @@ Unknown sensors are auto-created **without** municipality assignment when `WEBHO
 - Set `WEBHOOK_LOG_PAYLOAD=true` in `.env` to log the **full JSON body** (short-term only).
 - Compare last successful payloads: `python manage.py show_webhook_payload_samples --limit 5`
   (uses `SensorReading.raw_data` from the DB).
+- Audit import vs webhook linkage: `python manage.py audit_sensor_mapping`
 
 Example:
 
