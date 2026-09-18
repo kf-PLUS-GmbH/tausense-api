@@ -137,6 +137,7 @@ Unknown sensors are auto-created **without** municipality assignment when `WEBHO
 - Compare last successful payloads: `python manage.py show_webhook_payload_samples --limit 5`
   (uses `SensorReading.raw_data` from the DB).
 - Audit import vs webhook linkage: `python manage.py audit_sensor_mapping`
+- Merge duplicate webhook sensor into import row: `python manage.py merge_sensors --from ID --into ID`
 
 Example:
 

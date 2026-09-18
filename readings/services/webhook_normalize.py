@@ -1,5 +1,7 @@
 from typing import Any
 
+from sensors.services.coordinates import coordinates_from_device_name
+
 # Decoded payload keys from some codecs / middleware → our flat ingest format.
 FIELD_ALIASES = {
     'road_temperature': 'surface_temperature',
@@ -64,12 +66,19 @@ def normalize_incoming_webhook_payload(data: dict[str, Any]) -> dict[str, Any]:
             gw_time = first_rx.get('gwTime') or first_rx.get('nsTime')
             if gw_time:
                 payload['rxTime'] = gw_time
-        location = first_rx.get('location') or {}
-        if isinstance(location, dict):
-            if payload.get('lat') is None and location.get('latitude') is not None:
-                payload['lat'] = location['latitude']
-            if payload.get('lon') is None and location.get('longitude') is not None:
-                payload['lon'] = location['longitude']
+        # Do not use rxInfo.location for lat/lon — that is often the gateway, not the sensor.
+
+    device_name = payload.get('deviceName') or ''
+    name_coords = coordinates_from_device_name(str(device_name))
+    if name_coords:
+        payload['lat'] = float(name_coords[0])
+        payload['lon'] = float(name_coords[1])
+    elif payload.get('lat') is None and payload.get('lon') is None:
+        sensor_name = payload.get('device_name') or ''
+        fallback = coordinates_from_device_name(str(sensor_name))
+        if fallback:
+            payload['lat'] = float(fallback[0])
+            payload['lon'] = float(fallback[1])
 
     _apply_aliases(payload)
     return payload

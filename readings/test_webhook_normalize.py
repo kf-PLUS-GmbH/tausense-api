@@ -12,23 +12,26 @@ class WebhookNormalizeTests(SimpleTestCase):
             'time': '2026-06-03T09:10:06.316Z',
             'deviceInfo': {
                 'devEui': '70b3d57ba000638d',
-                'deviceName': 'MUB-TPK-0001',
+                'deviceName': 'MUB-TPK-0001-N50.22764-E11.76708',
             },
             'object': {
                 'air_temperature_radiation_shield': 12.84,
                 'air_humidity_radiation_shield': 83.77,
                 'surface_temperature': 24.8,
-                'lat': 50.22764,
-                'lon': 11.76708,
             },
+            'rxInfo': [
+                {'location': {'latitude': 99.0, 'longitude': 88.0}},
+            ],
         }
         flat = normalize_incoming_webhook_payload(raw)
 
         self.assertEqual(flat['deviceEui'], '70b3d57ba000638d')
-        self.assertEqual(flat['deviceName'], 'MUB-TPK-0001')
+        self.assertEqual(flat['deviceName'], 'MUB-TPK-0001-N50.22764-E11.76708')
         self.assertEqual(flat['timestamp'], '2026-06-03T09:10:06.316Z')
         self.assertEqual(flat['air_temperature_radiation_shield'], 12.84)
         self.assertEqual(flat['surface_temperature'], 24.8)
+        self.assertEqual(flat['lat'], 50.22764)
+        self.assertEqual(flat['lon'], 11.76708)
 
     def test_flat_payload_unchanged(self):
         raw = {

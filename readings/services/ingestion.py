@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from readings.models import SensorReading
 from sensors.models import Sensor
+from sensors.services.device_matching import find_sensor_by_webhook_device_name
 
 
 class WebhookIngestionError(Exception):
@@ -70,7 +71,7 @@ def _resolve_sensor(payload: dict[str, Any]) -> Sensor:
     device_name = str(payload.get('deviceName') or '').strip()
     sensor = Sensor.objects.filter(external_id=external_id).first()
     if not sensor and device_name:
-        sensor = Sensor.objects.filter(device_name=device_name).first()
+        sensor = find_sensor_by_webhook_device_name(device_name)
         if sensor:
             sensor.external_id = external_id
             sensor.save(update_fields=['external_id'])
@@ -105,18 +106,18 @@ def _resolve_sensor(payload: dict[str, Any]) -> Sensor:
 
 
 def _maybe_update_sensor_coordinates(sensor: Sensor, payload: dict[str, Any]) -> Sensor:
+    updates = {}
     lat = payload.get('lat')
     lon = payload.get('lon')
-    if lat is None or lon is None:
-        return sensor
-
-    updates = {}
-    new_lat = Decimal(str(lat))
-    new_lon = Decimal(str(lon))
-    if sensor.latitude != new_lat:
-        updates['latitude'] = new_lat
-    if sensor.longitude != new_lon:
-        updates['longitude'] = new_lon
+    if lat is not None and lon is not None:
+        new_lat = Decimal(str(lat))
+        new_lon = Decimal(str(lon))
+        # Keep XLSX import coordinates; webhook must not overwrite with gateway GPS.
+        if sensor.latitude is None or sensor.longitude is None:
+            if sensor.latitude != new_lat:
+                updates['latitude'] = new_lat
+            if sensor.longitude != new_lon:
+                updates['longitude'] = new_lon
     device_name = payload.get('deviceName')
     if device_name and sensor.device_name != device_name:
         updates['device_name'] = device_name

@@ -96,8 +96,9 @@ def dashboard_map_data(municipality_id=None, since=None):
             continue
         trend = calculate_trend(reading.air_temperature, reading.previous_air_temperature)
         ice_warning_level, dew_point = _ice_warning_for_reading(reading)
-        latitude = reading.latitude if reading.latitude is not None else sensor.latitude
-        longitude = reading.longitude if reading.longitude is not None else sensor.longitude
+        # Install position from sensor metadata (XLSX / deviceName); not gateway GPS on readings.
+        latitude = sensor.latitude if sensor.latitude is not None else reading.latitude
+        longitude = sensor.longitude if sensor.longitude is not None else reading.longitude
         if latitude is None or longitude is None:
             continue
         sensor_name = sensor.display_name or sensor.name
