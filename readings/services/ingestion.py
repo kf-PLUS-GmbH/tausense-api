@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from readings.models import SensorReading
 from sensors.models import Sensor
+from sensors.services.coordinates import coordinates_from_device_name
 from sensors.services.device_matching import find_sensor_by_webhook_device_name
 
 
@@ -107,13 +108,23 @@ def _resolve_sensor(payload: dict[str, Any]) -> Sensor:
 
 def _maybe_update_sensor_coordinates(sensor: Sensor, payload: dict[str, Any]) -> Sensor:
     updates = {}
-    lat = payload.get('lat')
-    lon = payload.get('lon')
-    if lat is not None and lon is not None:
-        new_lat = Decimal(str(lat))
-        new_lon = Decimal(str(lon))
-        # Keep XLSX import coordinates; webhook must not overwrite with gateway GPS.
-        if sensor.latitude is None or sensor.longitude is None:
+    install_coords = coordinates_from_device_name(
+        sensor.device_name or str(payload.get('deviceName') or '')
+    )
+    if install_coords:
+        new_lat, new_lon = install_coords
+        if sensor.latitude != new_lat:
+            updates['latitude'] = new_lat
+        if sensor.longitude != new_lon:
+            updates['longitude'] = new_lon
+    else:
+        lat = payload.get('lat')
+        lon = payload.get('lon')
+        if lat is not None and lon is not None and (
+            sensor.latitude is None or sensor.longitude is None
+        ):
+            new_lat = Decimal(str(lat))
+            new_lon = Decimal(str(lon))
             if sensor.latitude != new_lat:
                 updates['latitude'] = new_lat
             if sensor.longitude != new_lon:

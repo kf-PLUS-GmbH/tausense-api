@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from readings.models import SensorReading
 from sensors.models import Sensor
+from sensors.services.coordinates import coordinates_from_device_name
 
 
 class Command(BaseCommand):
@@ -51,8 +52,14 @@ class Command(BaseCommand):
         issues_stale = []
         issues_name_mismatch = []
         issues_no_readings = []
+        issues_coord_mismatch = []
 
         for sensor in qs:
+            expected = coordinates_from_device_name(sensor.device_name or '')
+            if expected and (
+                sensor.latitude != expected[0] or sensor.longitude != expected[1]
+            ):
+                issues_coord_mismatch.append((sensor, expected))
             eui = (sensor.external_id or '').strip()
             has_import_meta = bool(sensor.operator_name or sensor.display_name)
 
@@ -111,6 +118,16 @@ class Command(BaseCommand):
             lambda s: (
                 f'id={s.id}  EUI={s.external_id}  device_name={s.device_name!r}  '
                 f'readings={s.reading_count}'
+            ),
+        )
+
+        self._section(
+            'Sensor lat/lon ≠ coordinates in device_name (-N…-E…)',
+            issues_coord_mismatch,
+            lambda pair: (
+                f'id={pair[0].id}  device_name={pair[0].device_name!r}  '
+                f'db={pair[0].latitude},{pair[0].longitude}  '
+                f'expected={pair[1][0]},{pair[1][1]}'
             ),
         )
 

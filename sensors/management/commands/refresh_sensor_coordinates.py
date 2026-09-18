@@ -34,7 +34,7 @@ class Command(BaseCommand):
                     continue
                 self.stdout.write(
                     f'id={sensor.id} {sensor.device_name}: '
-                    f'{sensor.latitude},{sensor.longitude} -> {new_lat},{new_lon}'
+                    f'was {sensor.latitude},{sensor.longitude} -> {new_lat},{new_lon}'
                 )
                 if not dry_run:
                     sensor.latitude = new_lat
