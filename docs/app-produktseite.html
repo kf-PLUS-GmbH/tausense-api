@@ -2,67 +2,126 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>TauSense – Innovationsraum Hofer Land</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TauSense – Mobile App | hoferLand.digital</title>
+  <meta name="description" content="TauSense informiert über Taupunktsensorik, Glätte- und Eiswarnungen sowie Verkehrskameras im Landkreis Hof.">
+  <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
 
-<h1>Mobile App „TauSense“</h1>
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-brand" href="app-produktseite.html">
+      <img src="assets/img/tausense-logo.png" alt="" width="40" height="40">
+      TauSense
+    </a>
+    <button type="button" class="nav-toggle" aria-label="Menü" aria-expanded="false">☰</button>
+    <nav class="site-nav" aria-label="Hauptnavigation">
+      <a href="app-produktseite.html" data-nav="app-produktseite.html">App</a>
+      <a href="datenschutzerklaerung.html" data-nav="datenschutzerklaerung.html">Datenschutz</a>
+      <a href="https://hoferland-digital.de/" target="_blank" rel="noopener noreferrer">hoferLand.digital</a>
+    </nav>
+  </div>
+</header>
 
-<p><img src="../img/tausense-logo.png" alt="TauSense Logo" width="120" height="120"></p>
+<section class="hero">
+  <div class="hero__inner">
+    <div>
+      <span class="hero__badge">Modellprojekt Smart Cities</span>
+      <h1>Mobile App TauSense</h1>
+      <p class="lead">Live-Warnungen aus dem Taupunktsensorik-Netzwerk, Verlaufsdiagramme und optional Verkehrskameras aus dem bayerischen Straßennetz – für sicheres Unterwegssein im Hofer Land.</p>
+    </div>
+    <img class="hero__logo" src="assets/img/tausense-logo.png" alt="TauSense Logo" width="140" height="140">
+  </div>
+</section>
 
-<p>Die App <strong>TauSense</strong> ist Teil des Modellprojekts <strong>hoferLand.digital</strong> des Landkreises Hof. Sie informiert Bürgerinnen und Bürger sowie interessierte Nutzer über aktuelle Messwerte und Glätte- bzw. Eiswarnungen des Taupunktsensorik-Netzwerks im Hofer Land.</p>
+<main class="page-main">
 
-<h2>Was die App kann</h2>
+  <h2 class="section-title">Funktionen im Überblick</h2>
+  <div class="card-grid">
 
-<h3>Karte mit Live-Warnungen</h3>
-<p>Alle Taupunktsensoren im Landkreis Hof werden auf einer Karte angezeigt. Jeder Sensor ist farblich markiert:</p>
-<ul>
-  <li><strong>Grün</strong> – keine Warnung</li>
-  <li><strong>Gelb</strong> – mögliche Rutschgefahr</li>
-  <li><strong>Orange</strong> – erhöhte Eisgefahr</li>
-  <li><strong>Rot</strong> – akute Eisbildung wahrscheinlich</li>
-</ul>
-<p>Die Warnstufen werden automatisch aus Straßentemperatur, Taupunkt und Luftfeuchte berechnet.</p>
+    <article class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">🗺️</div>
+      <h3>Karte mit Live-Warnungen</h3>
+      <p>Alle Taupunktsensoren im Landkreis Hof auf einer Karte – farblich nach Warnstufe:</p>
+      <div class="legend">
+        <span><i class="c-green"></i> Grün – keine Warnung</span>
+        <span><i class="c-yellow"></i> Gelb – Rutschgefahr</span>
+        <span><i class="c-orange"></i> Orange – Eisgefahr</span>
+        <span><i class="c-red"></i> Rot – akute Eisbildung</span>
+      </div>
+      <p style="margin-top:0.75rem">Die Stufen werden aus Straßentemperatur, Taupunkt und Luftfeuchte berechnet.</p>
+    </article>
 
-<h3>Sensordetails</h3>
-<p>Bei Auswahl eines Sensors werden aktuelle Messwerte angezeigt, unter anderem:</p>
-<ul>
-  <li>Lufttemperatur</li>
-  <li>Luftfeuchte</li>
-  <li>Straßentemperatur</li>
-  <li>Taupunkt (berechnet)</li>
-  <li>Zeitstempel der letzten Messung</li>
-</ul>
+    <article class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">📊</div>
+      <h3>Sensordetails &amp; Verlauf</h3>
+      <p>Aktuelle Messwerte (Lufttemperatur, Luftfeuchte, Straßentemperatur, Taupunkt, Zeitstempel) und historische Diagramme – Zeitraum frei wählbar (bis 14 Tage).</p>
+    </article>
 
-<h3>Verlaufsdiagramme</h3>
-<p>Für jeden Sensor können historische Messwerte als Diagramm dargestellt werden. Der Zeitraum ist frei wählbar (bis zu 14 Tage).</p>
+    <article class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">📹</div>
+      <h3>Verkehrskameras</h3>
+      <p>Optional können Webcam-Bilder aus dem <strong>bayerischen Straßennetz</strong> (BayernInfo) auf der Karte eingeblendet werden – zur Einordnung der Verkehrs- und Straßenlage in Ihrer Umgebung.</p>
+    </article>
 
-<h3>Push-Benachrichtigungen</h3>
-<p>Optional können Sie sich bei Eis- und Glättewarnungen per Push-Nachricht informieren lassen. Sie können festlegen:</p>
-<ul>
-  <li>ob Sie nur orange/rote oder nur rote Warnungen erhalten möchten</li>
-  <li>ob Sie eine ganze Gemeinde oder einzelne Sensoren abonnieren</li>
-</ul>
-<p>Warnungen werden gesammelt versendet (z. B. „Erhöhte Eisgefahr an 3 Standorten“), damit nicht für jeden Sensor einzeln gemeldet wird.</p>
+    <article class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">🔔</div>
+      <h3>Push-Benachrichtigungen</h3>
+      <ul>
+        <li>Filter nach Schweregrad (orange/rot)</li>
+        <li>Abo nach Gemeinde oder einzelnen Sensoren</li>
+        <li>Sammelnachrichten statt Einzelmeldungen pro Sensor</li>
+      </ul>
+    </article>
 
-<h2>Technische Grundlagen</h2>
-<p>Die Sensoren übermitteln ihre Messwerte per LoRaWAN an unser Backend. Die App ruft die aufbereiteten Daten über eine gesicherte API (HTTPS) ab. Das Backend wird in Rechenzentren in Deutschland betrieben.</p>
-<p>Für Push-Benachrichtigungen wird Firebase Cloud Messaging (Google) genutzt. Es ist kein Benutzerkonto erforderlich.</p>
+  </div>
 
-<h2>Datenschutz</h2>
-<p>Informationen zur Verarbeitung personenbezogener Daten finden Sie in unserer <a href="datenschutzerklaerung.html">Datenschutzerklärung</a> (Abschnitt 8.2 und 12.4).</p>
+  <div class="panel">
+    <h2>Technische Grundlagen</h2>
+    <p>Die Sensoren senden Messwerte per LoRaWAN an unser Backend. Die App lädt aufbereitete Daten über eine gesicherte API (HTTPS). Das Backend wird in Rechenzentren in Deutschland betrieben.</p>
+    <p>Push-Benachrichtigungen nutzen Firebase Cloud Messaging (Google). Ein Benutzerkonto mit Name oder E-Mail ist nicht erforderlich.</p>
+    <p>Verkehrskamera-Metadaten und Livebilder werden beim Abruf direkt von den Diensten des bayerischen Verkehrsinformationssystems bezogen; Details siehe Datenschutzerklärung.</p>
+  </div>
 
-<h2>Kontakt</h2>
-<p>
-  Landratsamt Hof<br>
-  Projektbüro hoferLand.digital (Modellprojekt Smart Cities)<br>
-  Schaumbergstraße 14<br>
-  95032 Hof<br>
-  Telefon: 09281/57-0<br>
-  E-Mail: <a href="mailto:smartcity@landkreis-hof.de">smartcity@landkreis-hof.de</a>
-</p>
+  <div class="panel panel--accent">
+    <h2>Datenschutz</h2>
+    <p>Informationen zur Verarbeitung personenbezogener Daten finden Sie in unserer <a href="datenschutzerklaerung.html">Datenschutzerklärung</a>, insbesondere:</p>
+    <ul>
+      <li><a href="datenschutzerklaerung.html#hosting-tausense">Hosting der App (Abschnitt 8.2)</a></li>
+      <li><a href="datenschutzerklaerung.html#app-tausense">Mobile App TauSense (Abschnitt 12.4)</a></li>
+      <li><a href="datenschutzerklaerung.html#verkehrskameras">Verkehrskameras / Webcam-Bilder (Abschnitt 12.4.4)</a></li>
+    </ul>
+  </div>
 
-<p>Weitere Informationen zum Projekt: <a href="https://hoferland-digital.de/">hoferland-digital.de</a></p>
+  <div class="panel">
+    <h2>Kontakt</h2>
+    <p>
+      <strong>Landratsamt Hof</strong><br>
+      Projektbüro hoferLand.digital (Modellprojekt Smart Cities)<br>
+      Schaumbergstraße 14 · 95032 Hof<br>
+      Telefon: <a href="tel:+499281570">09281/57-0</a><br>
+      E-Mail: <a href="mailto:smartcity@landkreis-hof.de">smartcity@landkreis-hof.de</a>
+    </p>
+    <p>Projektwebsite: <a href="https://hoferland-digital.de/">hoferland-digital.de</a></p>
+  </div>
 
+</main>
+
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div>
+      <strong>Landratsamt Hof</strong><br>
+      hoferLand.digital · TauSense
+    </div>
+    <div>
+      <a href="app-produktseite.html">App</a> ·
+      <a href="datenschutzerklaerung.html">Datenschutz</a> ·
+      <a href="https://hoferland-digital.de/">hoferland-digital.de</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
 </body>
 </html>

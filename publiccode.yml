@@ -15,8 +15,9 @@ platforms:
   - ios
 
 categories:
-  - geospatial-information
-  - environmental-protection
+  - geographic-information-systems
+  - data-collection
+  - data-analytics
 
 usedBy:
   - Landkreis Hof
