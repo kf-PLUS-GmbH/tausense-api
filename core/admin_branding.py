@@ -1,6 +1,16 @@
 from django.core.exceptions import PermissionDenied
+from django.urls import resolve, Resolver404
 
 from core.roles import HIDDEN_ADMIN_APPS_FOR_STAFF, user_has_write_access
+
+# POST allowed for read-only staff (logout, own password change)
+READONLY_POST_URL_NAMES = frozenset(
+    {
+        'logout',
+        'password_change',
+        'password_change_done',
+    }
+)
 
 
 def apply_admin_branding(admin_site) -> None:
@@ -22,6 +32,13 @@ def apply_admin_branding(admin_site) -> None:
 
     admin_site.get_app_list = get_app_list
 
+    def readonly_post_allowed(request) -> bool:
+        try:
+            match = resolve(request.path)
+        except Resolver404:
+            return False
+        return match.url_name in READONLY_POST_URL_NAMES
+
     original_admin_view = admin_site.admin_view
 
     def admin_view(view, cacheable=False):
@@ -31,6 +48,7 @@ def apply_admin_branding(admin_site) -> None:
                 and request.user.is_authenticated
                 and request.user.is_staff
                 and not user_has_write_access(request.user)
+                and not readonly_post_allowed(request)
             ):
                 raise PermissionDenied
             return view(request, *args, **kwargs)
