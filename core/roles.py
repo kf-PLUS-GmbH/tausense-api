@@ -55,8 +55,9 @@ def user_is_tausense_admin(user) -> bool:
 
 
 def user_has_write_access(user) -> bool:
+    """Write in admin: superuser or group «TauSense Admin» only."""
     if not user.is_authenticated or not user.is_staff:
         return False
-    if user.is_superuser or user_is_tausense_admin(user):
+    if user.is_superuser:
         return True
-    return not user_is_viewer(user)
+    return user.groups.filter(name=GROUP_ADMIN).exists()
