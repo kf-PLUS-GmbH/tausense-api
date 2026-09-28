@@ -1,0 +1,119 @@
+:root {
+  --tausense-brand: #003871;
+  --tausense-brand-dark: #002a57;
+  --tausense-brand-light: #e8f0f8;
+  --tausense-accent: #0056a8;
+}
+
+#header {
+  background: linear-gradient(135deg, var(--tausense-brand-dark), var(--tausense-brand));
+  color: #fff;
+}
+
+#header a:link,
+#header a:visited {
+  color: #fff;
+}
+
+#branding #site-name a {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tausense-branding {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tausense-branding img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tausense-branding__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.tausense-branding__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.tausense-branding__subtitle {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+div.breadcrumbs {
+  background: var(--tausense-brand-light);
+  border-bottom: 1px solid #c5d6e8;
+}
+
+div.breadcrumbs a {
+  color: var(--tausense-brand);
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: var(--tausense-brand);
+}
+
+.button,
+input[type='submit'],
+input[type='button'],
+.submit-row input,
+a.button {
+  background: var(--tausense-brand);
+}
+
+.button:active,
+input[type='submit']:active,
+.button:focus,
+input[type='submit']:focus,
+.button:hover,
+input[type='submit']:hover {
+  background: var(--tausense-accent);
+}
+
+#user-tools a:focus,
+#user-tools a:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.75);
+}
+
+body.login {
+  background: #f4f7fb;
+}
+
+.login #header {
+  background: linear-gradient(135deg, var(--tausense-brand-dark), var(--tausense-brand));
+}
+
+.login #container {
+  border: 1px solid #d8e2ec;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 56, 113, 0.12);
+  overflow: hidden;
+}
+
+.login .submit-row input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.tausense-role-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--tausense-brand-light);
+  border-left: 4px solid var(--tausense-brand);
+  color: var(--tausense-brand-dark);
+  font-size: 0.9rem;
+}

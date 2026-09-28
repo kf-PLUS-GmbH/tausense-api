@@ -31,6 +31,35 @@ python manage.py seed_demo_data
 python manage.py runserver
 ```
 
+## Django admin (`/admin/`)
+
+Branded staff UI for sensors, readings, municipalities, alerts and push settings.
+
+### Roles
+
+| Group | Access |
+|---|---|
+| **Superuser** | Full access incl. user/group management |
+| **TauSense Admin** | Create, edit and delete all TauSense data |
+| **TauSense Viewer** | Read-only (lists and detail views, no changes) |
+
+Setup groups (once per database):
+
+```bash
+python manage.py setup_admin_groups
+```
+
+Assign roles:
+
+```bash
+python manage.py setup_admin_groups --promote max.mustermann
+python manage.py setup_admin_groups --viewer lese.nur
+```
+
+Create the user first (`createsuperuser` or superuser → Users). Staff users need `is_staff=True` (the command sets this when using `--promote` / `--viewer`).
+
+Production: run `collectstatic` so admin styling and logo are served.
+
 ## Environment / database modes
 
 Copy `.env.example` to `.env` and set values (never commit `.env`).

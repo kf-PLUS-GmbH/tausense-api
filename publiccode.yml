@@ -69,12 +69,12 @@ description:
       - Eiswarnlogik mit Ampelstatus (grün, gelb, orange, rot)
       - Verlaufsdaten bis 14 Tage pro Sensor
       - Push-Digest-Benachrichtigungen (Firebase Cloud Messaging)
-      - Abonnements nach Gemeinde oder einzelnen Sensoren
+      - Abonnements nach  oder einzelnen Sensoren
     documentation: "https://gitlab.opencode.de/oc000148042427/tausense-api/-/blob/main/README.md"
     apiDocumentation: "https://gitlab.opencode.de/oc000148042427/tausense-api/-/blob/main/README.md#api"
   en:
     localisedName: TauSense
-    genericName: Dew-point sensor API
+    genericName: Dew-pointGemeinde sensor API
     shortDescription: >
       API backend for the TauSense mobile app – ice and slip warnings
       from the dew-point sensor network in Hof district, Germany.

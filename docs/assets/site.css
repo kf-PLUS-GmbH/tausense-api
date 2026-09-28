@@ -342,6 +342,11 @@ img {
   align-items: start;
 }
 
+.page-privacy .privacy-layout--single {
+  grid-template-columns: 1fr;
+  max-width: var(--max);
+}
+
 .toc {
   position: sticky;
   top: calc(var(--header-h) + 1rem);

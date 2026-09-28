@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+{% if not user.is_superuser %}
+  {% for group in user.groups.all %}
+    {% if group.name == "TauSense Viewer" %}
+      <p class="tausense-role-banner">
+        {% translate "Leser-Zugang: Sie können Daten einsehen, aber nicht anlegen, bearbeiten oder löschen." %}
+      </p>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+<div id="content-main">
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}

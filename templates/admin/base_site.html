@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | TauSense Admin{% endblock %}
+
+{% block branding %}
+<div id="branding" class="tausense-branding">
+  <img src="{% static 'admin/img/tausense-logo.png' %}" alt="" width="36" height="36">
+  <div class="tausense-branding__text">
+    <a href="{% url 'admin:index' %}" class="tausense-branding__title">TauSense Verwaltung</a>
+    <span class="tausense-branding__subtitle">Landkreis Hof · hoferLand.digital</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/tausense.css' %}">
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

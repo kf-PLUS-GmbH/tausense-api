@@ -1,10 +1,11 @@
 from django.contrib import admin
 
+from core.admin_mixins import TauSenseModelAdmin
 from sensors.models import Sensor
 
 
 @admin.register(Sensor)
-class SensorAdmin(admin.ModelAdmin):
+class SensorAdmin(TauSenseModelAdmin):
     list_display = (
         'name',
         'device_name',
