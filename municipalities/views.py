@@ -28,5 +28,12 @@ from municipalities.serializers import MunicipalitySerializer
     },
 )
 class MunicipalityViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = Municipality.objects.all()
+    queryset = Municipality.objects.all().order_by('name')
     serializer_class = MunicipalitySerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = (self.request.query_params.get('name') or '').strip()
+        if name:
+            queryset = queryset.filter(name__iexact=name)
+        return queryset

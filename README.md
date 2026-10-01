@@ -97,6 +97,24 @@ RELEASE_MODE=dev_local
 
 `DEBUG` defaults to `true` for `dev_local`/`testing` and `false` for `release`.
 
+## Municipality boundaries (GeoJSON)
+
+Boundaries are stored in `Municipality.geo_boundary` and exposed at `GET /api/v1/municipalities/` (optional filter `?name=Hof`). The Flutter app reads them from the API instead of calling OpenStreetMap on each device.
+
+One-time setup on the server (respects Nominatim rate limits):
+
+```bash
+python manage.py import_municipality_boundaries --sync-sensor-names --link-sensors --fetch-osm --include-county
+```
+
+Or import from GeoJSON:
+
+```bash
+python manage.py import_municipality_boundaries --geojson /path/to/gemeinden.geojson
+```
+
+Re-run `--fetch-osm --force` to refresh a boundary. Names must match `Sensor.operator_name` / app municipality picks.
+
 ## Sensor metadata import
 
 Sensor master data (operator, display name, location description, coordinates, what3words)
@@ -105,17 +123,19 @@ belongs to `Sensor`, not `SensorReading`.
 The importer supports `.xlsx`, `.csv` and `.tsv`. Expected Excel headers:
 
 ```text
-Standortbezeichnung	Kommune	Name	Standort (Adresse)	Standort (GPS/ W3W)
+Standortbezeichnung	Kommune	Größe (km²)	Anzahl	Name	Standort (Adresse)	Standort (GPS/ W3W)
 ```
 
-Then import:
+Sheet name `Kommunen` is detected automatically. Empty **Kommune** cells under a municipality block are filled from the row above (Excel grouping).
 
 ```bash
 python manage.py import_sensor_metadata path/to/sensors.xlsx
 ```
 
-The command matches by `device_name`. If a sensor was imported before the first webhook,
-the first webhook later attaches `deviceEui` to the same sensor via `Sensor.external_id`.
+The command **updates** existing sensors by `device_name` (Standortbezeichnung) and **creates** new ones. **`external_id`**, readings and webhook links stay intact. Optional:
+
+- `--deactivate-missing` — sensors not in the file become `active=False` (not deleted)
+- `--replace-all` — old behaviour: delete everything, then import (destructive)
 
 ## Webhook (data ingestion)
 

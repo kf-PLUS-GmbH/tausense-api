@@ -6,6 +6,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from municipalities.models import Municipality
 from sensors.models import Sensor
 
 
@@ -30,6 +31,11 @@ HEADER_MAP = {
     'standort (gps/ w3w)': 'coordinates',
     'standort (gps/w3w)': 'coordinates',
     'coordinates': 'coordinates',
+    # New columns in Standortinfos export (ignored for import):
+    'größe (km²)': '',
+    'grösse (km²)': '',
+    'grosse (km²)': '',
+    'anzahl': '',
 }
 
 HEADER_ROW_SCAN_LIMIT = 10
@@ -37,7 +43,10 @@ KNOWN_HEADER_LABELS = frozenset(HEADER_MAP.keys())
 
 
 class Command(BaseCommand):
-    help = 'Delete all existing sensor metadata and import fresh data from XLSX/CSV/TSV.'
+    help = (
+        'Import or update sensor metadata from XLSX/CSV/TSV '
+        '(matched by device_name / Standortbezeichnung).'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -50,6 +59,18 @@ class Command(BaseCommand):
             help='Column delimiter for CSV/TSV files. '
                  'Default: tab for .tsv, comma for .csv.',
         )
+        parser.add_argument(
+            '--deactivate-missing',
+            action='store_true',
+            help='Set active=False for sensors not listed in the file '
+                 '(does not delete readings or external_id).',
+        )
+        parser.add_argument(
+            '--replace-all',
+            action='store_true',
+            help='Delete ALL sensors first, then import (legacy behaviour). '
+                 'Use only when you intentionally want a full reset.',
+        )
 
     def handle(self, *args, **options):
         path = Path(options['path'])
@@ -58,19 +79,28 @@ class Command(BaseCommand):
             raise CommandError(f'File not found: {path}')
 
         created = 0
+        updated = 0
         skipped = 0
+        deactivated = 0
+        deleted = 0
 
-        # Alle Daten zunächst einlesen und validieren.
         rows = list(self._rows(path, options['delimiter']))
+        rows = self._forward_fill_operator_names(rows)
+        municipality_by_name = {
+            municipality.name.casefold(): municipality
+            for municipality in Municipality.objects.all()
+        }
 
-        # Erst wenn die Datei gelesen werden konnte, wird die Tabelle
-        # geleert und anschließend komplett neu aufgebaut.
         with transaction.atomic():
-            deleted, _ = Sensor.objects.all().delete()
+            if options['replace_all']:
+                deleted, _ = Sensor.objects.all().delete()
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Replace-all: deleted {deleted} sensor record(s).'
+                    )
+                )
 
-            self.stdout.write(
-                f'Deleted {deleted} existing sensor records.'
-            )
+            imported_device_names: set[str] = set()
 
             for row_number, row in rows:
                 if not row.get('device_name'):
@@ -104,7 +134,6 @@ class Command(BaseCommand):
 
                 defaults = {
                     'name': display_name or device_name,
-                    'device_name': device_name,
                     'operator_name': operator_name,
                     'display_name': display_name,
                     'location_description': location_description,
@@ -115,15 +144,37 @@ class Command(BaseCommand):
                     'active': True,
                 }
 
-                Sensor.objects.create(**defaults)
-                created += 1
+                municipality = municipality_by_name.get(
+                    operator_name.casefold()
+                )
+                if municipality is not None:
+                    defaults['municipality'] = municipality
+
+                _, was_created = Sensor.objects.update_or_create(
+                    device_name=device_name,
+                    defaults=defaults,
+                )
+                imported_device_names.add(device_name)
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+
+            if options['deactivate_missing'] and not options['replace_all']:
+                deactivated = (
+                    Sensor.objects.filter(active=True)
+                    .exclude(device_name__in=imported_device_names)
+                    .update(active=False)
+                )
 
         self.stdout.write(
             self.style.SUCCESS(
                 f'Sensor metadata import done: '
-                f'{created} created, '
-                f'{skipped} skipped, '
-                f'{deleted} old records deleted.'
+                f'{created} created, {updated} updated, '
+                f'{skipped} skipped'
+                + (f', {deactivated} deactivated (not in file)' if deactivated else '')
+                + (f', {deleted} deleted (replace-all)' if deleted else '')
+                + '.'
             )
         )
 
@@ -169,7 +220,7 @@ class Command(BaseCommand):
             data_only=True,
         )
 
-        sheet = workbook.active
+        sheet = self._select_workbook_sheet(workbook)
 
         rows = [
             [
@@ -179,7 +230,42 @@ class Command(BaseCommand):
             for row in sheet.iter_rows(values_only=True)
         ]
 
+        workbook.close()
         yield from self._dict_rows(rows)
+
+    def _select_workbook_sheet(self, workbook):
+        preferred = ('Kommunen', 'Standorte', 'Sensoren')
+        for name in preferred:
+            if name in workbook.sheetnames:
+                return workbook[name]
+
+        for sheet in workbook.worksheets:
+            preview = [
+                [
+                    cell if cell is not None else ''
+                    for cell in row
+                ]
+                for row in sheet.iter_rows(
+                    max_row=HEADER_ROW_SCAN_LIMIT,
+                    values_only=True,
+                )
+            ]
+            if self._locate_header_row(preview)[0] is not None:
+                return sheet
+
+        return workbook.active
+
+    def _forward_fill_operator_names(self, rows):
+        last_operator = ''
+        filled = []
+        for row_number, row in rows:
+            operator_name = row.get('operator_name', '').strip()
+            if operator_name:
+                last_operator = operator_name
+            elif last_operator:
+                row = {**row, 'operator_name': last_operator}
+            filled.append((row_number, row))
+        return filled
 
     def _dict_rows(self, rows):
         if not rows:
