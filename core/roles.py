@@ -11,6 +11,7 @@ TAUSENSE_APP_LABELS = (
     'municipalities',
     'alerts',
     'devices',
+    'analytics',
 )
 
 HIDDEN_ADMIN_APPS_FOR_STAFF = (

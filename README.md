@@ -262,8 +262,12 @@ the next `since` parameter.
 
 - `POST /api/v1/analytics/usage/` — upload aggregated daily usage from the Flutter app
   (`schema_version`, pseudonymous `installation_id`, `days` with screens/actions/filters).
-  The server merges counters per installation and keeps up to 90 days. View aggregates in
-  Django admin under **Usage analytics installations**.
+  The server merges counters per installation and keeps up to 90 days.
+
+**Admin dashboard (TauSense Admin & Viewer):** In Django admin, open **App-Nutzung** for a
+visual overview (KPIs, sessions chart, screens, filters, connectivity). Viewers need
+`view` permissions on the analytics app — re-run `python manage.py setup_admin_groups` after
+deploy if the menu entry is missing.
 
 See [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) for Firebase setup, environment
 variables and example requests.

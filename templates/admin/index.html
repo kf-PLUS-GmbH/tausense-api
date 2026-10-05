@@ -2,6 +2,13 @@
 {% load i18n %}
 
 {% block content %}
+{% if perms.analytics.view_usageanalyticsinstallation %}
+<p class="tausense-analytics-teaser">
+  <strong>App-Nutzung:</strong>
+  <a href="{% url 'admin:analytics_usageanalyticsinstallation_dashboard' %}">Übersicht der Nutzungsstatistik öffnen</a>
+  (aggregiert, pseudonym).
+</p>
+{% endif %}
 {% if not user.is_superuser %}
   {% for group in user.groups.all %}
     {% if group.name == "TauSense Viewer" %}

@@ -10,8 +10,8 @@ class UsageAnalyticsInstallation(models.Model):
     last_upload_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Usage analytics installation'
-        verbose_name_plural = 'Usage analytics installations'
+        verbose_name = 'App-Nutzung (Installation)'
+        verbose_name_plural = 'App-Nutzung'
 
     def __str__(self) -> str:
         return str(self.installation_id)

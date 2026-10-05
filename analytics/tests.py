@@ -1,11 +1,16 @@
 import uuid
 
-from django.test import TestCase
+from django.contrib.auth.models import Group, User
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from analytics.aggregation import build_dashboard, build_installation_report
 from analytics.merge import merge_usage_days
 from analytics.models import UsageAnalyticsInstallation
+from core.roles import GROUP_VIEWER, ensure_admin_groups
 
 
 class UsageAnalyticsMergeTests(TestCase):
@@ -98,3 +103,44 @@ class UsageAnalyticsUploadAPITests(TestCase):
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UsageAnalyticsDashboardTests(TestCase):
+    def setUp(self):
+        ensure_admin_groups()
+        self.viewer = User.objects.create_user(
+            username='analytics_viewer',
+            password='test-pass-123',
+            is_staff=True,
+        )
+        self.viewer.groups.add(Group.objects.get(name=GROUP_VIEWER))
+        self.day_key = timezone.localdate().isoformat()
+        UsageAnalyticsInstallation.objects.create(
+            installation_id=uuid.uuid4(),
+            days={
+                self.day_key: {
+                    'sessions': 3,
+                    'screens': {'map': 4, 'dashboard': 1},
+                    'actions': {'location_button': 2},
+                },
+            },
+        )
+
+    def test_build_dashboard_aggregates_sessions(self):
+        report = build_dashboard(UsageAnalyticsInstallation.objects.all(), period_days=30)
+        self.assertGreaterEqual(report.total_sessions, 3)
+        self.assertEqual(report.screens[0].key, 'map')
+
+    def test_build_installation_report(self):
+        record = UsageAnalyticsInstallation.objects.first()
+        report = build_installation_report(record.days, period_days=30)
+        self.assertEqual(report.total_sessions, 3)
+
+    def test_viewer_can_open_dashboard(self):
+        client = Client()
+        client.force_login(self.viewer)
+        url = reverse('admin:analytics_usageanalyticsinstallation_dashboard')
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'App-Nutzung')
+        self.assertContains(response, 'Sessions pro Tag')

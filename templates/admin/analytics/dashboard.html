@@ -1,0 +1,160 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/analytics_dashboard.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; App-Nutzung
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-page">
+  <section class="analytics-hero">
+    <div>
+      <h1>App-Nutzung · TauSense Viewer</h1>
+      <p>
+        Aggregierte Nutzungsstatistik (ohne Personenbezug) ·
+        {{ report.period_start|date:"d.m.Y" }} – {{ report.period_end|date:"d.m.Y" }}
+      </p>
+    </div>
+    <nav class="analytics-period" aria-label="Zeitraum">
+      {% for days, label in period_choices %}
+        <a href="?period={{ days }}" class="{% if report.period_days == days %}is-active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  <div class="analytics-toolbar">
+    <a class="button" href="{% url 'admin:analytics_usageanalyticsinstallation_changelist' %}?raw=1">Technische Liste</a>
+  </div>
+
+  <div class="analytics-kpi-grid">
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">App-Starts (Sessions)</div>
+      <div class="analytics-kpi__value">{{ report.total_sessions }}</div>
+      <div class="analytics-kpi__hint">Summe im gewählten Zeitraum</div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Aktive Installationen</div>
+      <div class="analytics-kpi__value">{{ report.active_installations }}</div>
+      <div class="analytics-kpi__hint">von {{ report.installation_count }} erfassten Geräten</div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Ø Sessions</div>
+      <div class="analytics-kpi__value">{{ report.avg_sessions_per_active }}</div>
+      <div class="analytics-kpi__hint">pro aktiver Installation</div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Letzter Upload</div>
+      <div class="analytics-kpi__value" style="font-size:1.15rem;">
+        {% if report.last_upload_at %}
+          {{ report.last_upload_at|date:"d.m.Y H:i" }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="analytics-kpi__hint">Zuletzt empfangene Nutzungsdaten</div>
+    </article>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Sessions pro Tag</h2>
+      {% if report.total_sessions %}
+        <div class="analytics-chart" role="img" aria-label="Sessions pro Tag">
+          {% for point in report.sessions_series %}
+            {% widthratio point.sessions report.max_sessions_in_day 100 as bar_height %}
+            <div class="analytics-chart__bar-wrap" title="{{ point.label }}: {{ point.sessions }} Sessions">
+              <div class="analytics-chart__bar" style="height: {% if bar_height < 4 and point.sessions %}4{% else %}{{ bar_height }}{% endif %}%; min-height: {% if point.sessions %}6px{% else %}2px{% endif %}; opacity: {% if point.sessions %}1{% else %}0.25{% endif %};"></div>
+              <span class="analytics-chart__label">{{ point.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="analytics-empty">Noch keine Sessions im gewählten Zeitraum.</div>
+      {% endif %}
+    </section>
+
+    <section class="analytics-panel">
+      <h2>Bildschirme</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.screens %}
+    </section>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Aktionen in der App</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.actions %}
+    </section>
+    <section class="analytics-panel">
+      <h2>Status-Filter</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.status_filters %}
+    </section>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Gemeinden (Filter)</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.municipalities %}
+    </section>
+    <section class="analytics-panel">
+      <h2>Sensoren (Filter)</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.sensors %}
+    </section>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Verbindung · App-Starts</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.connectivity_sessions %}
+    </section>
+    <section class="analytics-panel">
+      <h2>Verbindungswechsel</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.connectivity %}
+      {% if report.camera_enabled_days %}
+        <div class="analytics-pill-grid" style="margin-top:14px;">
+          <span class="analytics-pill">Kamera aktiv (Tage): {{ report.camera_enabled_days }}</span>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if report.recent_installations %}
+    <section class="analytics-panel">
+      <h2>Zuletzt gemeldete Installationen</h2>
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Installation</th>
+            <th>Letzter Upload</th>
+            <th>Tage gespeichert</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in report.recent_installations %}
+            <tr>
+              <td><span class="analytics-install-id">{{ item.short_id }}…</span></td>
+              <td>{{ item.last_upload_at|date:"d.m.Y H:i" }}</td>
+              <td>{{ item.day_count }}</td>
+              <td><a href="{% url 'admin:analytics_usageanalyticsinstallation_change' item.id %}">Details</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+
+  <p class="analytics-note">
+    Die Auswertung basiert auf freiwillig übermittelten, pseudonymen Aggregaten aus der TauSense-App.
+    Es werden keine Namen, Standorte oder Roh-Trackingdaten einzelner Personen gespeichert.
+  </p>
+</div>
+{% endblock %}

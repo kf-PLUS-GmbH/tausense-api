@@ -1,0 +1,91 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/analytics_dashboard.css' %}">
+{% endblock %}
+
+{% block after_field_sets %}
+{% if report %}
+<div class="analytics-page" style="margin-top: 18px;">
+  <section class="analytics-hero">
+    <div>
+      <h1>Installation · Detailauswertung</h1>
+      <p class="analytics-install-id">{{ original.installation_id }}</p>
+    </div>
+    <nav class="analytics-period" aria-label="Zeitraum">
+      {% for days, label in period_choices %}
+        <a href="?period={{ days }}" class="{% if report.period_days == days %}is-active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  <div class="analytics-kpi-grid">
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Sessions</div>
+      <div class="analytics-kpi__value">{{ report.total_sessions }}</div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Aktive Tage</div>
+      <div class="analytics-kpi__value">{{ report.active_days }}</div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Zuletzt aktiv</div>
+      <div class="analytics-kpi__value" style="font-size:1rem;">
+        {% if report.last_active_at %}
+          {{ report.last_active_at }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </article>
+    <article class="analytics-kpi">
+      <div class="analytics-kpi__label">Kamera (Tage aktiv)</div>
+      <div class="analytics-kpi__value">{{ report.camera_enabled_days }}</div>
+    </article>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Sessions pro Tag</h2>
+      {% if report.total_sessions %}
+        <div class="analytics-chart">
+          {% for point in report.sessions_series %}
+            {% widthratio point.sessions max_sessions_in_day 100 as bar_height %}
+            <div class="analytics-chart__bar-wrap">
+              <div class="analytics-chart__bar" style="height: {% if bar_height < 4 and point.sessions %}4{% else %}{{ bar_height }}{% endif %}%; min-height: {% if point.sessions %}6px{% else %}2px{% endif %};"></div>
+              <span class="analytics-chart__label">{{ point.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="analytics-empty">Keine Daten im Zeitraum.</div>
+      {% endif %}
+    </section>
+    <section class="analytics-panel">
+      <h2>Bildschirme</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.screens %}
+    </section>
+  </div>
+
+  <div class="analytics-grid-2">
+    <section class="analytics-panel">
+      <h2>Aktionen</h2>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.actions %}
+    </section>
+    <section class="analytics-panel">
+      <h2>Filter · Gemeinden &amp; Sensoren</h2>
+      <h3 style="font-size:0.9rem;margin:0 0 8px;color:#5c6b7a;">Gemeinden</h3>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.municipalities %}
+      <h3 style="font-size:0.9rem;margin:16px 0 8px;color:#5c6b7a;">Sensoren</h3>
+      {% include "admin/analytics/includes/metric_bars.html" with metrics=report.sensors %}
+    </section>
+  </div>
+
+  <div class="analytics-toolbar">
+    <a class="button" href="{% url 'admin:analytics_usageanalyticsinstallation_dashboard' %}">Zur Gesamtübersicht</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

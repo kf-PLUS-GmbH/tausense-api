@@ -1,0 +1,15 @@
+{% if metrics %}
+  <div class="analytics-bar-list">
+    {% for metric in metrics %}
+      <div class="analytics-bar-row">
+        <span>{{ metric.label }}</span>
+        <div class="analytics-bar-row__track">
+          <div class="analytics-bar-row__fill" style="width: {{ metric.share_pct }}%;"></div>
+        </div>
+        <span class="analytics-bar-row__value">{{ metric.count }} · {{ metric.share_pct }}%</span>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="analytics-empty">In diesem Zeitraum liegen noch keine Daten vor.</div>
+{% endif %}
