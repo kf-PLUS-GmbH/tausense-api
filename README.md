@@ -258,6 +258,13 @@ the next `since` parameter.
 - `POST /api/v1/push-tokens/` — register FCM device token
 - `POST /api/test/push/` — send a test push to one device
 
+### Usage analytics (consent-based)
+
+- `POST /api/v1/analytics/usage/` — upload aggregated daily usage from the Flutter app
+  (`schema_version`, pseudonymous `installation_id`, `days` with screens/actions/filters).
+  The server merges counters per installation and keeps up to 90 days. View aggregates in
+  Django admin under **Usage analytics installations**.
+
 See [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) for Firebase setup, environment
 variables and example requests.
 

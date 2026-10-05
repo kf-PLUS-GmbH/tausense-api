@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'readings',
     'alerts',
     'devices.apps.DevicesConfig',
+    'analytics.apps.AnalyticsConfig',
 ]
 
 MIDDLEWARE = [

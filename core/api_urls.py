@@ -7,6 +7,7 @@ from core.views import (
     DashboardMapDataView,
     DashboardWarningsView,
 )
+from analytics.views import UsageAnalyticsUploadView
 from devices.views import AlertPreferencesView, PushTokenView
 from municipalities.views import MunicipalityViewSet
 from readings.views import SensorReadingViewSet
@@ -30,4 +31,9 @@ urlpatterns = [
     path('dashboard/map-data/', DashboardMapDataView.as_view(), name='dashboard-map-data'),
     path('alerts/preferences/', AlertPreferencesView.as_view(), name='alert-preferences'),
     path('push-tokens/', PushTokenView.as_view(), name='push-tokens'),
+    path(
+        'analytics/usage/',
+        UsageAnalyticsUploadView.as_view(),
+        name='analytics-usage-upload',
+    ),
 ]
