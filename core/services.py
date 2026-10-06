@@ -1,11 +1,7 @@
 from django.db.models import F, OuterRef, Subquery
 
-from core.ice_warning import (
-    ICE_WARNING_LABELS,
-    ICE_WARNING_NONE,
-    alert_status_for_level,
-    evaluate_ice_warning,
-)
+from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, alert_status_for_level
+from core.ice_warning_state import ice_warning_level_for_reading
 from core.utils import calculate_dew_point, calculate_trend
 from readings.models import SensorReading
 from sensors.models import Sensor
@@ -39,7 +35,7 @@ def latest_readings_with_previous(municipality_id=None):
 
 def _ice_warning_for_reading(reading):
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
-    level = evaluate_ice_warning(reading.road_temperature, dew_point, reading.humidity)
+    level = ice_warning_level_for_reading(reading)
     return level, dew_point
 
 

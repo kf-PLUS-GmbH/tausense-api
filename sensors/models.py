@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+
+from core.ice_warning import ICE_WARNING_LEVELS, ICE_WARNING_NONE
 from municipalities.models import Municipality
 
 
@@ -48,6 +50,18 @@ class Sensor(models.Model):
     sensor_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     active = models.BooleanField(default=True)
     external_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    ice_warning_level = models.CharField(
+        max_length=20,
+        choices=[(level, level) for level in ICE_WARNING_LEVELS],
+        default=ICE_WARNING_NONE,
+        db_index=True,
+        help_text='Aktive Warnstufe inkl. Reset-Hysterese und Verifikationszeit.',
+    )
+    ice_warning_level_since = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Zeitpunkt der letzten Änderung der aktiven Warnstufe.',
+    )
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(default=timezone.now, db_index=True)
 

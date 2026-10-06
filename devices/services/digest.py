@@ -2,16 +2,15 @@ from dataclasses import dataclass
 
 from django.db.models import Q
 
-from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, ICE_WARNING_SEVERITY, alert_status_for_level, evaluate_ice_warning
-from core.utils import calculate_dew_point
+from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, ICE_WARNING_SEVERITY, alert_status_for_level
+from core.ice_warning_state import ice_warning_level_for_reading
 from devices.models import AlertPreference
 from readings.selectors import latest_readings_queryset
 from sensors.models import Sensor
 
 
 def _ice_warning_level_for_reading(reading) -> str:
-    dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
-    return evaluate_ice_warning(reading.road_temperature, dew_point, reading.humidity)
+    return ice_warning_level_for_reading(reading)
 
 
 def _matches_severity_filter(severity_filter: str, alert_status: str) -> bool:

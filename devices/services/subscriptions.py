@@ -4,12 +4,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from core.ice_warning import (
-    ICE_WARNING_NONE,
-    alert_status_for_level,
-    evaluate_ice_warning,
-)
-from core.utils import calculate_dew_point
+from core.ice_warning import ICE_WARNING_NONE, alert_status_for_level
+from core.ice_warning_state import ice_warning_level_for_reading
 from devices.models import AlertPreference, PushDigestState, PushNotificationState, PushToken
 from devices.services.digest import build_warning_digest, collect_warning_sensors
 from devices.services.push import send_digest_push_notification
@@ -85,8 +81,7 @@ def find_subscribed_push_tokens(sensor: Sensor, alert_status: str) -> list[PushT
 
 
 def _ice_warning_level_for_reading(reading: SensorReading) -> str:
-    dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
-    return evaluate_ice_warning(reading.road_temperature, dew_point, reading.humidity)
+    return ice_warning_level_for_reading(reading)
 
 
 def _reminder_interval() -> timedelta:

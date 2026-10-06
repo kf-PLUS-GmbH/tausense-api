@@ -3,7 +3,12 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from core.ice_warning import alert_status_for_level, evaluate_ice_warning
+from core.ice_warning import (
+    ICE_WARNING_NONE,
+    alert_status_for_level,
+    precipitation_detected,
+    transition_ice_warning_level,
+)
 from core.utils import calculate_dew_point
 from readings.models import SensorReading
 from sensors.models import Sensor
@@ -90,14 +95,27 @@ def reading_history_points(sensor_id: int, start: datetime, end: datetime) -> tu
         )
     )
 
+    readings_list = list(readings)
     points = []
-    for reading in readings:
+    stored_level = ICE_WARNING_NONE
+    for index, reading in enumerate(readings_list):
         dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
-        ice_warning_level = evaluate_ice_warning(
-            reading.road_temperature,
-            dew_point,
-            reading.humidity,
+        window_start = reading.timestamp - timedelta(minutes=10)
+        recent = [
+            item
+            for item in readings_list[: index + 1]
+            if item.timestamp >= window_start
+        ]
+        stored_level = transition_ice_warning_level(
+            stored_level=stored_level,
+            road_temperature=reading.road_temperature,
+            air_temperature=reading.air_temperature,
+            humidity=reading.humidity,
+            dew_point=dew_point,
+            precipitation=precipitation_detected(reading.raw_data),
+            recent_readings=recent,
         )
+        ice_warning_level = stored_level
         points.append(
             {
                 'timestamp': reading.timestamp,

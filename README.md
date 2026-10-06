@@ -230,14 +230,17 @@ Base path: `/api/v1/`
 - `GET /api/v1/dashboard/coldest-sensor/`
 - `GET /api/v1/dashboard/map-data/`
 
-Ice warning levels on map data are computed from the latest reading per sensor:
+Ice warning levels on map data use the **stored level per sensor** (updated on each webhook
+reading) with **reset hysteresis** so marker colours do not flicker at thresholds.
 
-| Level | Label | Criteria |
-|---|---|---|
-| `none` | Keine Warnung | Normal conditions |
-| `possible_slip` | Mögliche Rutschgefahr | Road ≤ 2 °C and \|road − dew point\| ≤ 2 °C |
-| `increased_ice` | Erhöhte Eisgefahr | Road ≤ 1 °C and \|road − dew point\| ≤ 1 °C, or humidity ≥ 90 % with road ≤ 1.5 °C |
-| `acute_ice` | Akute Eisbildung wahrscheinlich | Road ≤ 0 °C and \|road − dew point\| ≤ 0.5 °C |
+| Level | Label | Trigger (activation) | Reset (deactivation) |
+|---|---|---|---|
+| `possible_slip` | Advisory · Mögliche Rutschgefahr | Road ≤ 2.0 °C and \|road − dew point\| ≤ 2.0 °C | Road **> 2.5 °C** |
+| `increased_ice` | Warning · Erhöhte Eisgefahr | Road ≤ 1.0 °C and \|road − dew point\| ≤ 1.0 °C, **or** humidity ≥ 90 % with road ≤ 1.5 °C | Road **> 1.5 °C** |
+| `acute_ice` | Critical · Akute Eisbildung | Road ≤ 0.0 °C and \|road − dew point\| ≤ 0.5 °C, **or** road ≤ 0.0 °C and precipitation in `raw_data` | Road **> 0.5 °C** for **≥ 10 minutes** (all readings in window) |
+
+Escalation to a higher level is immediate; downgrades only after the reset condition for the
+current level is met, then the trigger rules are re-evaluated.
 
 `alert_status` maps to map colors: `green`, `yellow`, `orange`, `red`.
 Dew point is computed from air temperature and humidity (Magnus formula).

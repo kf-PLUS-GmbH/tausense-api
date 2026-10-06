@@ -189,8 +189,10 @@ def ingest_lorawan_payload(
         },
     )
 
+    from core.ice_warning_state import update_sensor_ice_warning_from_reading
     from devices.services.subscriptions import notify_sensor_ice_warning
 
+    update_sensor_ice_warning_from_reading(sensor, reading)
     notify_sensor_ice_warning(sensor, reading)
     return reading
 
