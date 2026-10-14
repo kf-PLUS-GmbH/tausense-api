@@ -24,6 +24,7 @@ def _recent_readings(sensor, reading: SensorReading, *, minutes: int = 10):
 
 
 def update_sensor_ice_warning_from_reading(sensor, reading: SensorReading) -> str:
+    sensor.refresh_from_db(fields=['ice_warning_level', 'ice_warning_level_since'])
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
     precip = precipitation_detected(raw_data=reading.raw_data)
     recent = _recent_readings(sensor, reading, minutes=10)
@@ -51,11 +52,10 @@ def ice_warning_level_for_reading(reading: SensorReading) -> str:
     sensor = reading.sensor
     latest = (
         SensorReading.objects.filter(sensor=sensor)
-        .order_by('-timestamp')
-        .values_list('id', flat=True)
+        .order_by('-timestamp', '-id')
         .first()
     )
-    if latest == reading.id:
+    if latest is not None and latest.id == reading.id:
         return update_sensor_ice_warning_from_reading(sensor, reading)
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
     return transition_ice_warning_level(

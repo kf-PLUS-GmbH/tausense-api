@@ -98,6 +98,17 @@ class IceWarningHysteresisTests(SimpleTestCase):
             ICE_WARNING_ACUTE_ICE,
         )
 
+    def test_critical_clears_immediately_when_road_above_advisory_reset(self):
+        self.assertEqual(
+            self._transition(
+                ICE_WARNING_ACUTE_ICE,
+                3.0,
+                dew=2.0,
+                recent=[],
+            ),
+            ICE_WARNING_NONE,
+        )
+
     def test_critical_reset_requires_ten_minutes_above_0_5(self):
         recent_short = [
             _ReadingStub(0.7, minutes_ago=9),

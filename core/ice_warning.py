@@ -12,7 +12,8 @@ Levels:
   Reset: T_road > 1.5 °C
 - Critical (red): T_road <= 0.0 °C and |T_road - Td| <= 0.5 °C,
   or T_road <= 0.0 °C and precipitation detected
-  Reset: T_road > 0.5 °C for at least 10 minutes (all readings in window)
+  Reset: T_road > 0.5 °C for at least 10 minutes (all readings in window),
+  or T_road > 2.5 °C immediately (clearly above advisory reset)
 """
 
 from __future__ import annotations
@@ -152,6 +153,8 @@ def _stored_level_cleared(
     if stored_level == ICE_WARNING_INCREASED_ICE:
         return _reset_increased_ice(road_temperature)
     if stored_level == ICE_WARNING_ACUTE_ICE:
+        if _reset_possible_slip(road_temperature):
+            return True
         return _acute_reset_confirmed(road_temperature, recent_readings)
     return True
 

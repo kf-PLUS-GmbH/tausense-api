@@ -80,9 +80,12 @@ def dashboard_map_data(municipality_id=None, since=None):
     if municipality_id:
         sensor_qs = sensor_qs.filter(municipality_id=municipality_id)
 
-    latest_by_sensor = {
-        r.sensor_id: r for r in latest_readings_with_previous(municipality_id=municipality_id)
-    }
+    latest_by_sensor: dict[int, SensorReading] = {}
+    for reading in latest_readings_with_previous(
+        municipality_id=municipality_id,
+    ).order_by('sensor_id', '-timestamp', '-id'):
+        if reading.sensor_id not in latest_by_sensor:
+            latest_by_sensor[reading.sensor_id] = reading
     payload = []
     for sensor in sensor_qs:
         reading = latest_by_sensor.get(sensor.id)
