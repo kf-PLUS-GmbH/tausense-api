@@ -2,6 +2,12 @@
 {% load i18n %}
 
 {% block content %}
+{% if user.is_staff %}
+<p class="tausense-analytics-teaser">
+  <strong>Performance:</strong>
+  <a href="{% url 'admin:core_performance_dashboard' %}">SQL- &amp; API-Diagnose (Map-Daten, Dashboard)</a>
+</p>
+{% endif %}
 {% if perms.analytics.view_usageanalyticsinstallation %}
 <p class="tausense-analytics-teaser">
   <strong>App-Nutzung:</strong>

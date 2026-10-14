@@ -24,7 +24,10 @@
   </div>
 </header>
 
-<div class="privacy-layout">
+<div class="privacy-layout privacy-layout--legal">
+  <aside class="legal-sidebar" aria-label="Seitennavigation">
+  <details class="toc-details">
+    <summary class="toc-details__summary">Inhaltsverzeichnis</summary>
   <nav class="toc" aria-label="Inhaltsverzeichnis">
     <p class="toc__title">Inhalt</p>
     <ul>
@@ -37,9 +40,12 @@
       <li><a href="#cookies">Cookies</a></li>
       <li><a href="#app-tausense">Mobile App TauSense</a></li>
       <li class="toc-sub"><a href="#verkehrskameras">Verkehrskameras</a></li>
+      <li class="toc-sub"><a href="#nutzungsstatistik">Nutzungsstatistik (optional)</a></li>
       <li><a href="#hinweis">Änderungen</a></li>
     </ul>
   </nav>
+  </details>
+  </aside>
 
   <main class="legal-content">
 
@@ -152,6 +158,7 @@
   <li>Messwerte der Taupunktsensoren (Temperatur, Luftfeuchte, Straßentemperatur, Zeitstempel, Sensorstandort)</li>
   <li>technische App-Einstellungen (Warnfilter, Gemeinde- oder Sensor-Abo)</li>
   <li>Push-Gerätetoken und eine lokal erzeugte Installationskennung (<code>user_id</code>) zur Zuordnung der Einstellungen</li>
+  <li>optional, nur nach Einwilligung: pseudonyme, aggregierte Nutzungsstatistik der App (siehe Abschnitt <a href="#nutzungsstatistik">12.4.5</a>)</li>
   <li>Server-Logdaten (z. B. IP-Adresse, Zeitpunkt, aufgerufene API-Endpunkte)</li>
 </ul>
 <p>Die Übertragung zwischen App und Backend erfolgt verschlüsselt über HTTPS (TLS). Es ist kein Benutzerkonto mit Name oder E-Mail erforderlich.</p>
@@ -272,7 +279,7 @@
   <li>technische Zugriffsdaten beim API-Abruf (z. B. IP-Adresse, Zeitpunkt)</li>
 </ul>
 <p>Die in der App angezeigten Sensordaten (Temperatur, Luftfeuchte, Straßentemperatur, Taupunkt, Warnstufe, Standort des Sensors) sind <strong>keine personenbezogenen Daten</strong>, sondern Messwerte an fest installierten Sensorstandorten.</p>
-<p>Die App erhebt <strong>keinen Standort Ihres Smartphones</strong>, sofern Sie dem in den Geräteeinstellungen nicht separat zustimmen.</p>
+<p>Die App erhebt <strong>keinen Standort Ihres Smartphones</strong>, sofern Sie dem in den Geräteeinstellungen nicht separat zustimmen – auch nicht im Rahmen der optionalen Nutzungsstatistik (Abschnitt <a href="#nutzungsstatistik">12.4.5</a>).</p>
 
 <h4>12.4.2 Push-Benachrichtigungen (Firebase Cloud Messaging)</h4>
 <p>Wenn Sie Push-Mitteilungen aktivieren, nutzen wir den Dienst <strong>Firebase Cloud Messaging (FCM)</strong> der Google Ireland Limited / Google LLC. Dabei wird Ihr FCM-Gerätetoken an Google übermittelt, damit die Warnung auf Ihr Gerät zugestellt werden kann.</p>
@@ -294,6 +301,7 @@
   <li>Warnfilter und Push-Token: bis zur Deaktivierung, Ersetzung oder Löschung auf Anfrage</li>
   <li>Erinnerungsstatus für wiederholte Warnungen: wird bei Entwarnung zurückgesetzt</li>
   <li>Ungültige Push-Token werden automatisch gelöscht</li>
+  <li>Optionale Nutzungsstatistik: lokal und auf dem Server höchstens 90 Tage als Tages-Aggregate; bei Deaktivierung der Funktion werden die lokalen Statistikdaten auf dem Gerät gelöscht (Abschnitt <a href="#nutzungsstatistik">12.4.5</a>)</li>
 </ul>
 
 <h4 id="verkehrskameras">12.4.4 Verkehrskameras (Webcam-Bilder im bayerischen Straßennetz)</h4>
@@ -303,6 +311,39 @@
 <p>Die Verkehrskameras sind Teil des Verkehrsinformationssystems <a href="https://www.bayerninfo.de/de/verkehrskameras">BayernInfo</a> des Freistaats Bayern. Nach Angaben des Betreibers werden die Kamerabilder so aufbereitet, dass personenbezogene Merkmale (z.&nbsp;B. Gesichter, Kennzeichen) unkenntlich gemacht werden; die Darstellung dient der Verkehrsinformation, nicht der Identifizierung von Personen.</p>
 <p><strong>Rechtsgrundlage</strong> für die Einbindung in unserer App ist Art. 6 Abs. 1 Unterabsatz 1 Buchstabe e DSGVO in Verbindung mit Art. 4 Abs. 1 BayDSG (Information der Öffentlichkeit über Verkehrs- und Straßenverhältnisse im Rahmen des Modellprojekts hoferLand.digital). Die Anzeige der Kameras ist optional und kann in den App-Einstellungen deaktiviert werden.</p>
 <p>Weitere Informationen zur Datenverarbeitung im Rahmen von BayernInfo finden Sie in der <a href="https://www.bayerninfo.de/de/datenschutz">Datenschutzerklärung von BayernInfo</a> bzw. für die BayernInfo-App unter <a href="https://www.bayerninfo.de/de/datenschutz-app">Datenschutz App – BayernInfo</a>.</p>
+
+<h4 id="nutzungsstatistik">12.4.5 Freiwillige Nutzungsstatistik (App-Nutzung)</h4>
+<p>Um die TauSense-App bedarfsgerecht weiterzuentwickeln und typische Nutzungsweisen besser zu verstehen, können Sie <strong>freiwillig</strong> der Erfassung einer <strong>pseudonymen Nutzungsstatistik</strong> zustimmen. Die Funktion ist standardmäßig <strong>deaktiviert</strong> und kann jederzeit in den App-Einstellungen ein- oder ausgeschaltet werden.</p>
+<p><strong>Kein Drittanbieter-Tracking:</strong> Es werden keine Dienste wie Google Analytics o. Ä. in der App eingesetzt. Die Auswertung erfolgt ausschließlich über unser eigenes Backend (Abschnitt <a href="#hosting-tausense">8.2</a>, Hosting in Deutschland).</p>
+
+<p><strong>Zweck</strong> ist die statistische Auswertung, wie die App genutzt wird (z. B. welche Bereiche aufgerufen werden, wie Filter genutzt werden), um Usability und Informationsangebot im öffentlichen Interesse zu verbessern.</p>
+<p><strong>Rechtsgrundlage</strong> ist Ihre Einwilligung gemäß Art. 6 Abs. 1 Unterabsatz 1 Buchstabe a DSGVO. Sie können die Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen, indem Sie die Nutzungsstatistik in den Einstellungen deaktivieren.</p>
+
+<p><strong>Was erfasst wird (nur in aggregierter Form, pro Kalendertag):</strong></p>
+<ul>
+  <li>Anzahl der App-Sitzungen (App-Start bzw. Wiederaufnahme aus dem Hintergrund)</li>
+  <li>Zeitpunkt der letzten Aktivität (UTC, ohne genauen Bewegungsprofil)</li>
+  <li>aufgerufene App-Bereiche (z. B. Karte, Dashboard, Einstellungen) als Zähler</li>
+  <li>bestimmte Bedienhandlungen (z. B. Standort-Schaltfläche auf der Karte, Ein-/Ausschalten der Verkehrskamera-Anzeige) als Zähler</li>
+  <li>Nutzung von Warnfiltern (Schweregrad, gewählte Gemeinde, ausgewählte Sensor-IDs) als Zähler – <strong>ohne</strong> Speicherung von GPS-Koordinaten oder Fahrtrouten</li>
+  <li>Verbindungsart zum Zeitpunkt von Sitzungen bzw. Verbindungswechsel (z. B. WLAN, Mobilfunk, offline) als Zähler</li>
+</ul>
+
+<p><strong>Was nicht erfasst wird:</strong></p>
+<ul>
+  <li>kein Name, keine E-Mail-Adresse, kein Benutzerkonto</li>
+  <li>kein Standort Ihres Smartphones (GPS) und keine Bewegungsprofile</li>
+  <li>keine Inhalte von Push-Nachrichten, keine Messwerte einzelner Sensoren als Zeitreihe in der Statistik</li>
+  <li>keine Werbe-ID und kein geräteübergreifendes Profiling durch Dritte</li>
+</ul>
+
+<p><strong>Technische Umsetzung:</strong> Die App fasst die genannten Ereignisse zunächst <strong>lokal auf Ihrem Gerät</strong> zusammen (Shared Preferences). Erst nach Ihrer Einwilligung und in regelmäßigen Abständen (typischerweise höchstens einmal täglich, zusätzlich beim Wechsel in den Hintergrund bzw. bei App-Start) werden die <strong>Tages-Aggregate</strong> verschlüsselt (HTTPS/TLS) an unser Backend übermittelt (<code>POST /api/v1/analytics/usage/</code>). Dabei wird eine <strong>pseudonyme Installationskennung</strong> (<code>installation_id</code>, zufällige UUID) verwendet, die von der Kennung für Push-Einstellungen (<code>user_id</code>) getrennt ist. Anhand dieser ID ist ohne zusätzliche Informationen in der Regel <strong>kein Rückschluss auf eine natürliche Person</strong> möglich.</p>
+<p>Beim Upload können – wie bei jedem API-Aufruf – technische Zugriffsdaten (insbesondere IP-Adresse, Zeitpunkt) in Server-Logdateien anfallen (Abschnitt <a href="#hosting">8.3</a>). Diese Logs werden getrennt von der Nutzungsstatistik geführt und dienen der IT-Sicherheit.</p>
+<p>Im Backend werden die übermittelten Tageswerte pro <code>installation_id</code> zusammengeführt (Zähler addiert). Eine Auswertung im Landkreis erfolgt nur in <strong>aggregierter Form</strong> (z. B. Summen und Anteile über alle Installationen) für autorisierte Mitarbeitende im Admin-Bereich.</p>
+
+<p><strong>Speicherdauer:</strong> In der App und auf dem Server werden höchstens <strong>90 Tage</strong> Tages-Aggregate vorgehalten. Nach erfolgreichem Upload werden die bereits übermittelten Tagesdaten auf dem Gerät geleert; ältere Tage werden lokal automatisch entfernt. Deaktivieren Sie die Funktion, werden die lokal gespeicherten Statistikdaten und die pseudonyme Installationskennung für die Statistik auf dem Gerät gelöscht.</p>
+
+<p><strong>Empfänger:</strong> Landratsamt Hof / Betrieb des TauSense-Backends (Hosting in Deutschland, siehe Abschnitt <a href="#hosting-tausense">8.2</a>). Eine Weitergabe der Nutzungsstatistik an Dritte zu Werbe- oder Marketingzwecken findet nicht statt.</p>
 
 <h2 id="hinweis">13. Weiterer Hinweis zur Datenschutzerklärung</h2>
 <p>Wir behalten uns vor, diese Datenschutzerklärung gelegentlich anzupassen, damit sie stets den aktuellen rechtlichen Anforderungen entspricht.</p>

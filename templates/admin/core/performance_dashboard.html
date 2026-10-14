@@ -1,0 +1,123 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/analytics_dashboard.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; Performance-Diagnose
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-page">
+  <section class="analytics-hero">
+    <div>
+      <h1>Performance &amp; SQL-Diagnose</h1>
+      <p>Misst Serverzeit, SQL-Anzahl und langsame Abfragen für zentrale API-Endpunkte (ohne Netzwerk zur App).</p>
+    </div>
+  </section>
+
+  {% if error %}
+    <p class="analytics-note" style="border-left-color:#c0392b;background:#fdecea;">{{ error }}</p>
+  {% endif %}
+
+  <section class="analytics-panel">
+    <h2>Benchmark starten</h2>
+    {% if can_run %}
+      <form method="post" class="analytics-toolbar">
+        {% csrf_token %}
+        <label>
+          Endpunkt
+          <select name="benchmark" style="margin-left:8px;padding:6px 10px;border-radius:8px;">
+            {% for value, label in benchmark_choices %}
+              <option value="{{ value }}" {% if selected == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+            <option value="run_all" {% if selected == 'run_all' %}selected{% endif %}>Alle (Vergleich)</option>
+          </select>
+        </label>
+        <button type="submit" class="button">Jetzt messen</button>
+      </form>
+      <p class="analytics-note" style="margin-top:12px;">
+        Tipp: Vergleichen Sie <strong>Map-Daten (Produktion)</strong> mit
+        <strong>alte Warnlogik</strong> – dort entstehen oft hunderte SQL-Abfragen pro Aufruf.
+      </p>
+    {% else %}
+      <p class="analytics-empty">Benchmarks dürfen nur von TauSense Admin oder Superuser ausgeführt werden (Viewer: nur Lesen).</p>
+    {% endif %}
+  </section>
+
+  {% for profile in profiles %}
+    <section class="analytics-panel" style="margin-top:16px;">
+      <h2>{{ profile.label }}</h2>
+      <div class="analytics-kpi-grid">
+        <article class="analytics-kpi">
+          <div class="analytics-kpi__label">Gesamtzeit (Python + DB)</div>
+          <div class="analytics-kpi__value">{{ profile.duration_ms|floatformat:1 }} ms</div>
+        </article>
+        <article class="analytics-kpi">
+          <div class="analytics-kpi__label">SQL-Abfragen</div>
+          <div class="analytics-kpi__value">{{ profile.query_count }}</div>
+        </article>
+        <article class="analytics-kpi">
+          <div class="analytics-kpi__label">Summe DB-Zeit</div>
+          <div class="analytics-kpi__value">{{ profile.db_time_ms|floatformat:1 }} ms</div>
+        </article>
+        <article class="analytics-kpi">
+          <div class="analytics-kpi__label">Ø pro Query</div>
+          <div class="analytics-kpi__value">{{ profile.avg_query_ms|floatformat:2 }} ms</div>
+        </article>
+      </div>
+
+      {% if profile.result_summary %}
+        <p style="color:#5c6b7a;font-size:0.92rem;">
+          Ergebnis:
+          {% if profile.result_summary.count is not None %} {{ profile.result_summary.count }} Einträge{% endif %}
+          {% if profile.result_summary.active_sensors %} · {{ profile.result_summary.active_sensors }} aktive Sensoren{% endif %}
+          {% if profile.result_summary.latest_readings %} · {{ profile.result_summary.latest_readings }} neueste Messungen{% endif %}
+        </p>
+      {% endif %}
+
+      {% if profile.steps %}
+        <h3 style="font-size:1rem;color:#003871;">Schritte</h3>
+        <table class="analytics-table">
+          <thead>
+            <tr><th>Schritt</th><th>Dauer</th><th>SQL</th><th>DB-Zeit</th></tr>
+          </thead>
+          <tbody>
+            {% for step in profile.steps %}
+              <tr>
+                <td>{{ step.name }}</td>
+                <td>{{ step.duration_ms|floatformat:1 }} ms</td>
+                <td>{{ step.query_count }}</td>
+                <td>{{ step.db_time_ms|floatformat:1 }} ms</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+      <h3 style="font-size:1rem;color:#003871;margin-top:18px;">Langsamste SQL-Abfragen</h3>
+      {% if profile.slow_queries %}
+          <table class="analytics-table">
+            <thead><tr><th>ms</th><th>SQL (gekürzt)</th></tr></thead>
+            <tbody>
+              {% for q in profile.slow_queries %}
+                <tr>
+                  <td style="width:72px;">{{ q.duration_ms|floatformat:2 }}</td>
+                  <td><code style="font-size:0.78rem;word-break:break-word;">{{ q.sql|truncatechars:320 }}</code></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+      {% else %}
+          <div class="analytics-empty">Keine SQL-Abfragen aufgezeichnet.</div>
+      {% endif %}
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}

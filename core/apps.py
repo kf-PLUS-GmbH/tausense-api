@@ -9,5 +9,7 @@ class CoreConfig(AppConfig):
         from django.contrib import admin
 
         from core.admin_branding import apply_admin_branding
+        from core.admin_performance import register_performance_admin_urls
 
         apply_admin_branding(admin.site)
+        register_performance_admin_urls()

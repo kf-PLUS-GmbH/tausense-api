@@ -33,10 +33,87 @@ def latest_readings_with_previous(municipality_id=None):
     )
 
 
+def _stored_ice_warning_level(sensor: Sensor) -> str:
+    """Warnstufe aus dem Sensor (wird beim Webhook aktualisiert) – ohne N+1 auf der Map-API."""
+    return sensor.ice_warning_level or ICE_WARNING_NONE
+
+
 def _ice_warning_for_reading(reading):
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
     level = ice_warning_level_for_reading(reading)
     return level, dew_point
+
+
+def _map_reading_fields(reading, sensor: Sensor):
+    dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
+    trend = calculate_trend(reading.air_temperature, reading.previous_air_temperature)
+    ice_warning_level = _stored_ice_warning_level(sensor)
+    latitude = sensor.latitude if sensor.latitude is not None else reading.latitude
+    longitude = sensor.longitude if sensor.longitude is not None else reading.longitude
+    sensor_name = sensor.display_name or sensor.name
+    return {
+        'dew_point': dew_point,
+        'trend': trend,
+        'ice_warning_level': ice_warning_level,
+        'latitude': latitude,
+        'longitude': longitude,
+        'sensor_name': sensor_name,
+    }
+
+
+def dashboard_map_data_legacy_warnings(municipality_id=None, since=None):
+    """Previous behaviour: recomputes ice level per sensor (slow, for diagnostics only)."""
+    sensor_qs = Sensor.objects.select_related('municipality').filter(active=True)
+    if municipality_id:
+        sensor_qs = sensor_qs.filter(municipality_id=municipality_id)
+
+    latest_by_sensor: dict[int, SensorReading] = {}
+    for reading in latest_readings_with_previous(
+        municipality_id=municipality_id,
+    ).order_by('sensor_id', '-timestamp', '-id'):
+        if reading.sensor_id not in latest_by_sensor:
+            latest_by_sensor[reading.sensor_id] = reading
+
+    payload = []
+    for sensor in sensor_qs:
+        reading = latest_by_sensor.get(sensor.id)
+        if reading is None:
+            continue
+        if since and reading.timestamp <= since and sensor.updated_at <= since:
+            continue
+        ice_warning_level, dew_point = _ice_warning_for_reading(reading)
+        latitude = sensor.latitude if sensor.latitude is not None else reading.latitude
+        longitude = sensor.longitude if sensor.longitude is not None else reading.longitude
+        if latitude is None or longitude is None:
+            continue
+        sensor_name = sensor.display_name or sensor.name
+        payload.append(
+            {
+                'sensor_id': sensor.id,
+                'sensor_name': sensor_name,
+                'device_name': sensor.device_name,
+                'operator_name': sensor.operator_name,
+                'municipality': sensor.municipality.name if sensor.municipality else None,
+                'coordinates': {'lat': float(latitude), 'lon': float(longitude)},
+                'updated_at': sensor.updated_at,
+                'latest_reading': {
+                    'timestamp': reading.timestamp,
+                    'device_name': reading.device_name,
+                    'air_temperature': reading.air_temperature,
+                    'road_temperature': reading.road_temperature,
+                    'humidity': reading.humidity,
+                    'dew_point': dew_point,
+                    'trend': calculate_trend(
+                        reading.air_temperature,
+                        reading.previous_air_temperature,
+                    ),
+                },
+                'ice_warning_level': ice_warning_level,
+                'ice_warning_label': ICE_WARNING_LABELS[ice_warning_level],
+                'alert_status': alert_status_for_level(ice_warning_level),
+            },
+        )
+    return payload
 
 
 def dashboard_warnings(municipality_id=None):
@@ -46,7 +123,7 @@ def dashboard_warnings(municipality_id=None):
         municipality = reading.sensor.municipality
         if municipality is None:
             continue
-        level, _ = _ice_warning_for_reading(reading)
+        level = _stored_ice_warning_level(reading.sensor)
         if level == ICE_WARNING_NONE:
             continue
         municipality_name = municipality.name
@@ -93,22 +170,20 @@ def dashboard_map_data(municipality_id=None, since=None):
             continue
         if since and reading.timestamp <= since and sensor.updated_at <= since:
             continue
-        trend = calculate_trend(reading.air_temperature, reading.previous_air_temperature)
-        ice_warning_level, dew_point = _ice_warning_for_reading(reading)
-        # Install position from sensor metadata (XLSX / deviceName); not gateway GPS on readings.
-        latitude = sensor.latitude if sensor.latitude is not None else reading.latitude
-        longitude = sensor.longitude if sensor.longitude is not None else reading.longitude
-        if latitude is None or longitude is None:
+        fields = _map_reading_fields(reading, sensor)
+        if fields['latitude'] is None or fields['longitude'] is None:
             continue
-        sensor_name = sensor.display_name or sensor.name
         payload.append(
             {
                 'sensor_id': sensor.id,
-                'sensor_name': sensor_name,
+                'sensor_name': fields['sensor_name'],
                 'device_name': sensor.device_name,
                 'operator_name': sensor.operator_name,
                 'municipality': sensor.municipality.name if sensor.municipality else None,
-                'coordinates': {'lat': float(latitude), 'lon': float(longitude)},
+                'coordinates': {
+                    'lat': float(fields['latitude']),
+                    'lon': float(fields['longitude']),
+                },
                 'updated_at': sensor.updated_at,
                 'latest_reading': {
                     'timestamp': reading.timestamp,
@@ -120,16 +195,16 @@ def dashboard_map_data(municipality_id=None, since=None):
                     'air_humidity_radiation_shield': reading.air_humidity_radiation_shield,
                     'air_temperature_unshielded': reading.air_temperature_unshielded,
                     'air_humidity_unshielded': reading.air_humidity_unshielded,
-                    'dew_point': dew_point,
+                    'dew_point': fields['dew_point'],
                     'reported_dew_point': reading.reported_dew_point,
-                    'trend': trend,
+                    'trend': fields['trend'],
                     'angle': reading.angle,
                     'sensor_temperature': reading.sensor_temperature,
                     'battery_voltage': reading.battery_voltage,
                 },
-                'ice_warning_level': ice_warning_level,
-                'ice_warning_label': ICE_WARNING_LABELS[ice_warning_level],
-                'alert_status': alert_status_for_level(ice_warning_level),
+                'ice_warning_level': fields['ice_warning_level'],
+                'ice_warning_label': ICE_WARNING_LABELS[fields['ice_warning_level']],
+                'alert_status': alert_status_for_level(fields['ice_warning_level']),
             }
         )
     return payload

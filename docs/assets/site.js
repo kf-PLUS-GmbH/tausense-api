@@ -17,4 +17,18 @@
       link.classList.add('is-active');
     }
   });
+
+  var tocDetails = document.querySelector('.toc-details');
+  if (tocDetails) {
+    var desktopToc = window.matchMedia('(min-width: 901px)');
+    var syncToc = function () {
+      tocDetails.open = desktopToc.matches;
+    };
+    if (typeof desktopToc.addEventListener === 'function') {
+      desktopToc.addEventListener('change', syncToc);
+    } else if (typeof desktopToc.addListener === 'function') {
+      desktopToc.addListener(syncToc);
+    }
+    syncToc();
+  }
 })();

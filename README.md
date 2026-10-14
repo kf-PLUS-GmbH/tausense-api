@@ -245,6 +245,12 @@ current level is met, then the trigger rules are re-evaluated.
 `alert_status` maps to map colors: `green`, `yellow`, `orange`, `red`.
 Dew point is computed from air temperature and humidity (Magnus formula).
 
+**Performance (Admin):** `/admin/core/performance/` runs server-side benchmarks (total time,
+SQL query count, summed DB time, slowest queries). Compare **Map-Daten (Produktion)** with
+**alte Warnlogik** to see N+1 effects. Staff API profiling headers: add `?profile=1` while
+logged into admin, e.g. `GET /api/v1/dashboard/map-data/?profile=1` → response headers
+`X-Request-Duration-Ms`, `X-Query-Count`, `X-Query-Time-Ms`. CLI: `python manage.py profile_dashboard --benchmark all`.
+
 Incremental map sync:
 
 ```http
