@@ -147,3 +147,43 @@ class WebhookAuthOptionalTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(SensorReading.objects.count(), 1)
+
+
+class LatestReadingsSelectorTests(TestCase):
+    def setUp(self):
+        self.sensor_a = Sensor.objects.create(name='A', sensor_type=Sensor.TYPE_STANDARD, active=True)
+        self.sensor_b = Sensor.objects.create(name='B', sensor_type=Sensor.TYPE_STANDARD, active=True)
+        now = timezone.now()
+        SensorReading.objects.create(
+            sensor=self.sensor_a,
+            timestamp=now - timedelta(hours=2),
+            air_temperature=1.0,
+            road_temperature=0.0,
+            humidity=90.0,
+        )
+        SensorReading.objects.create(
+            sensor=self.sensor_a,
+            timestamp=now - timedelta(hours=1),
+            air_temperature=3.0,
+            road_temperature=1.0,
+            humidity=85.0,
+        )
+        SensorReading.objects.create(
+            sensor=self.sensor_b,
+            timestamp=now - timedelta(minutes=30),
+            air_temperature=5.0,
+            road_temperature=2.0,
+            humidity=70.0,
+        )
+
+    def test_latest_per_sensor_and_previous_air_temperature(self):
+        from readings.selectors import latest_readings_with_previous
+
+        by_sensor = {r.sensor_id: r for r in latest_readings_with_previous()}
+        self.assertEqual(len(by_sensor), 2)
+        latest_a = by_sensor[self.sensor_a.id]
+        self.assertAlmostEqual(latest_a.air_temperature, 3.0)
+        self.assertAlmostEqual(latest_a.previous_air_temperature, 1.0)
+        latest_b = by_sensor[self.sensor_b.id]
+        self.assertAlmostEqual(latest_b.air_temperature, 5.0)
+        self.assertIsNone(latest_b.previous_air_temperature)

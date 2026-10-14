@@ -1,36 +1,10 @@
-from django.db.models import F, OuterRef, Subquery
-
 from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, alert_status_for_level
 from core.ice_warning_state import ice_warning_level_for_reading
 from core.utils import calculate_dew_point, calculate_trend
 from readings.models import SensorReading
+from readings.selectors import latest_readings_with_previous
 from sensors.models import Sensor
 
-
-def latest_readings_with_previous(municipality_id=None):
-    base = SensorReading.objects.all()
-    if municipality_id:
-        base = base.filter(sensor__municipality_id=municipality_id)
-
-    latest_timestamp = (
-        SensorReading.objects.filter(sensor_id=OuterRef('sensor_id'))
-        .order_by('-timestamp')
-        .values('timestamp')[:1]
-    )
-    previous_temp = (
-        SensorReading.objects.filter(
-            sensor_id=OuterRef('sensor_id'),
-            timestamp__lt=OuterRef('timestamp'),
-        )
-        .order_by('-timestamp')
-        .values('air_temperature')[:1]
-    )
-    return (
-        base.select_related('sensor', 'sensor__municipality')
-        .annotate(_latest_ts=Subquery(latest_timestamp))
-        .filter(timestamp=F('_latest_ts'))
-        .annotate(previous_air_temperature=Subquery(previous_temp))
-    )
 
 
 def _stored_ice_warning_level(sensor: Sensor) -> str:
@@ -67,12 +41,10 @@ def dashboard_map_data_legacy_warnings(municipality_id=None, since=None):
     if municipality_id:
         sensor_qs = sensor_qs.filter(municipality_id=municipality_id)
 
-    latest_by_sensor: dict[int, SensorReading] = {}
-    for reading in latest_readings_with_previous(
-        municipality_id=municipality_id,
-    ).order_by('sensor_id', '-timestamp', '-id'):
-        if reading.sensor_id not in latest_by_sensor:
-            latest_by_sensor[reading.sensor_id] = reading
+    latest_by_sensor: dict[int, SensorReading] = {
+        reading.sensor_id: reading
+        for reading in latest_readings_with_previous(municipality_id=municipality_id)
+    }
 
     payload = []
     for sensor in sensor_qs:
@@ -157,12 +129,10 @@ def dashboard_map_data(municipality_id=None, since=None):
     if municipality_id:
         sensor_qs = sensor_qs.filter(municipality_id=municipality_id)
 
-    latest_by_sensor: dict[int, SensorReading] = {}
-    for reading in latest_readings_with_previous(
-        municipality_id=municipality_id,
-    ).order_by('sensor_id', '-timestamp', '-id'):
-        if reading.sensor_id not in latest_by_sensor:
-            latest_by_sensor[reading.sensor_id] = reading
+    latest_by_sensor: dict[int, SensorReading] = {
+        reading.sensor_id: reading
+        for reading in latest_readings_with_previous(municipality_id=municipality_id)
+    }
     payload = []
     for sensor in sensor_qs:
         reading = latest_by_sensor.get(sensor.id)

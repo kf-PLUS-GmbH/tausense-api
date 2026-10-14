@@ -6,8 +6,8 @@ from core.services import (
     dashboard_map_data,
     dashboard_map_data_legacy_warnings,
     dashboard_warnings,
-    latest_readings_with_previous,
 )
+from readings.selectors import latest_readings_with_previous
 from sensors.models import Sensor
 
 

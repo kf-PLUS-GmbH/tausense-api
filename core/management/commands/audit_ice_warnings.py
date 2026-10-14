@@ -7,7 +7,7 @@ from core.ice_warning import (
     precipitation_detected,
 )
 from core.ice_warning_state import update_sensor_ice_warning_from_reading
-from core.services import latest_readings_with_previous
+from readings.selectors import latest_readings_with_previous
 from core.utils import calculate_dew_point
 class Command(BaseCommand):
     help = (

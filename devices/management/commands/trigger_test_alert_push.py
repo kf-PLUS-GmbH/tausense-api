@@ -12,7 +12,7 @@ from core.ice_warning import (
     alert_status_for_level,
     evaluate_ice_warning,
 )
-from core.services import latest_readings_with_previous
+from readings.selectors import latest_readings_with_previous
 from core.utils import calculate_dew_point
 from devices.models import AlertPreference, PushToken
 from devices.services.subscriptions import (
