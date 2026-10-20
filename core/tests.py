@@ -1,7 +1,4 @@
-from datetime import timedelta
-
 from django.test import SimpleTestCase
-from django.utils import timezone
 
 from core.ice_warning import (
     ICE_WARNING_ACUTE_ICE,
@@ -12,12 +9,6 @@ from core.ice_warning import (
     evaluate_ice_warning,
     transition_ice_warning_level,
 )
-
-
-class _ReadingStub:
-    def __init__(self, road_temperature: float, *, minutes_ago: float = 0.0):
-        self.road_temperature = road_temperature
-        self.timestamp = timezone.now() - timedelta(minutes=minutes_ago)
 
 
 class IceWarningEvaluationTests(SimpleTestCase):
@@ -59,7 +50,6 @@ class IceWarningHysteresisTests(SimpleTestCase):
         *,
         dew=0.0,
         humidity=80.0,
-        recent=None,
         precipitation=False,
     ):
         return transition_ice_warning_level(
@@ -69,7 +59,6 @@ class IceWarningHysteresisTests(SimpleTestCase):
             humidity=humidity,
             dew_point=dew,
             precipitation=precipitation,
-            recent_readings=recent or [],
         )
 
     def test_advisory_holds_until_reset_above_2_5(self):
@@ -98,45 +87,14 @@ class IceWarningHysteresisTests(SimpleTestCase):
             ICE_WARNING_ACUTE_ICE,
         )
 
-    def test_critical_clears_immediately_when_road_above_advisory_reset(self):
+    def test_critical_clears_when_road_above_0_5(self):
         self.assertEqual(
-            self._transition(
-                ICE_WARNING_ACUTE_ICE,
-                3.0,
-                dew=2.0,
-                recent=[],
-            ),
-            ICE_WARNING_NONE,
-        )
-
-    def test_critical_reset_requires_ten_minutes_above_0_5(self):
-        recent_short = [
-            _ReadingStub(0.7, minutes_ago=9),
-            _ReadingStub(0.7, minutes_ago=0),
-        ]
-        self.assertEqual(
-            self._transition(
-                ICE_WARNING_ACUTE_ICE,
-                0.7,
-                dew=2.0,
-                recent=recent_short,
-            ),
-            ICE_WARNING_ACUTE_ICE,
-        )
-
-        recent_long = [
-            _ReadingStub(0.7, minutes_ago=11),
-            _ReadingStub(0.7, minutes_ago=5),
-            _ReadingStub(0.7, minutes_ago=0),
-        ]
-        self.assertEqual(
-            self._transition(
-                ICE_WARNING_ACUTE_ICE,
-                0.7,
-                dew=2.0,
-                recent=recent_long,
-            ),
+            self._transition(ICE_WARNING_ACUTE_ICE, 0.7, dew=2.0),
             ICE_WARNING_POSSIBLE_SLIP,
+        )
+        self.assertEqual(
+            self._transition(ICE_WARNING_ACUTE_ICE, 3.0, dew=2.0),
+            ICE_WARNING_NONE,
         )
 
     def test_alert_status_mapping(self):

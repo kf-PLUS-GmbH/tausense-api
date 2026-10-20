@@ -1,7 +1,3 @@
-from datetime import timedelta
-
-from django.utils import timezone
-
 from core.ice_warning import (
     ICE_WARNING_NONE,
     precipitation_detected,
@@ -11,23 +7,10 @@ from core.utils import calculate_dew_point
 from readings.models import SensorReading
 
 
-def _recent_readings(sensor, reading: SensorReading, *, minutes: int = 10):
-    window_start = reading.timestamp - timedelta(minutes=minutes)
-    return (
-        SensorReading.objects.filter(
-            sensor=sensor,
-            timestamp__lte=reading.timestamp,
-            timestamp__gte=window_start,
-        )
-        .order_by('timestamp')
-    )
-
-
 def update_sensor_ice_warning_from_reading(sensor, reading: SensorReading) -> str:
     sensor.refresh_from_db(fields=['ice_warning_level', 'ice_warning_level_since'])
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
     precip = precipitation_detected(raw_data=reading.raw_data)
-    recent = _recent_readings(sensor, reading, minutes=10)
 
     new_level = transition_ice_warning_level(
         stored_level=sensor.ice_warning_level or ICE_WARNING_NONE,
@@ -36,7 +19,6 @@ def update_sensor_ice_warning_from_reading(sensor, reading: SensorReading) -> st
         humidity=reading.humidity,
         precipitation=precip,
         dew_point=dew_point,
-        recent_readings=recent,
     )
 
     if new_level != (sensor.ice_warning_level or ICE_WARNING_NONE):
@@ -65,5 +47,4 @@ def ice_warning_level_for_reading(reading: SensorReading) -> str:
         humidity=reading.humidity,
         precipitation=precipitation_detected(raw_data=reading.raw_data),
         dew_point=dew_point,
-        recent_readings=[reading],
     )

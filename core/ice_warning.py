@@ -12,14 +12,12 @@ Levels:
   Reset: T_road > 1.5 °C
 - Critical (red): T_road <= 0.0 °C and |T_road - Td| <= 0.5 °C,
   or T_road <= 0.0 °C and precipitation detected
-  Reset: T_road > 0.5 °C for at least 10 minutes (all readings in window),
-  or T_road > 2.5 °C immediately (clearly above advisory reset)
+  Reset: T_road > 0.5 °C
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Any, Iterable
+from typing import Any
 
 ICE_WARNING_NONE = 'none'
 ICE_WARNING_POSSIBLE_SLIP = 'possible_slip'
@@ -57,7 +55,6 @@ ICE_WARNING_SEVERITY = {
 RESET_ROAD_POSSIBLE_SLIP = 2.5
 RESET_ROAD_INCREASED_ICE = 1.5
 RESET_ROAD_ACUTE_ICE = 0.5
-ACUTE_RESET_STABLE_MINUTES = 10
 
 PRECIPITATION_RAW_KEYS = (
     'precipitation',
@@ -126,36 +123,17 @@ def _reset_increased_ice(road_temperature: float) -> bool:
     return road_temperature > RESET_ROAD_INCREASED_ICE
 
 
-def _reading_road(reading) -> float:
-    return float(reading.road_temperature)
+def _reset_acute_ice(road_temperature: float) -> bool:
+    return road_temperature > RESET_ROAD_ACUTE_ICE
 
 
-def _acute_reset_confirmed(road_temperature: float, recent_readings: Iterable) -> bool:
-    if road_temperature <= RESET_ROAD_ACUTE_ICE:
-        return False
-    readings = list(recent_readings)
-    if not readings:
-        return False
-    for item in readings:
-        if _reading_road(item) <= RESET_ROAD_ACUTE_ICE:
-            return False
-    span = readings[-1].timestamp - readings[0].timestamp
-    return span >= timedelta(minutes=ACUTE_RESET_STABLE_MINUTES)
-
-
-def _stored_level_cleared(
-    stored_level: str,
-    road_temperature: float,
-    recent_readings: Iterable,
-) -> bool:
+def _stored_level_cleared(stored_level: str, road_temperature: float) -> bool:
     if stored_level == ICE_WARNING_POSSIBLE_SLIP:
         return _reset_possible_slip(road_temperature)
     if stored_level == ICE_WARNING_INCREASED_ICE:
         return _reset_increased_ice(road_temperature)
     if stored_level == ICE_WARNING_ACUTE_ICE:
-        if _reset_possible_slip(road_temperature):
-            return True
-        return _acute_reset_confirmed(road_temperature, recent_readings)
+        return _reset_acute_ice(road_temperature)
     return True
 
 
@@ -167,7 +145,6 @@ def transition_ice_warning_level(
     humidity: float,
     dew_point: float | None = None,
     precipitation: bool = False,
-    recent_readings: Iterable | None = None,
 ) -> str:
     """
     Apply hysteresis: escalate immediately on trigger; downgrade only after reset.
@@ -184,7 +161,6 @@ def transition_ice_warning_level(
         precipitation=precipitation,
     )
     stored_level = stored_level or ICE_WARNING_NONE
-    recent_readings = recent_readings or []
 
     if ICE_WARNING_SEVERITY[triggered] > ICE_WARNING_SEVERITY[stored_level]:
         return triggered
@@ -192,7 +168,7 @@ def transition_ice_warning_level(
     if stored_level == ICE_WARNING_NONE:
         return ICE_WARNING_NONE
 
-    if not _stored_level_cleared(stored_level, road_temperature, recent_readings):
+    if not _stored_level_cleared(stored_level, road_temperature):
         return stored_level
 
     return triggered
