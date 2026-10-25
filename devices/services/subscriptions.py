@@ -131,11 +131,32 @@ def _preferences_for_sensor(sensor: Sensor) -> list[AlertPreference]:
     return [preference for preference in preferences if matches_subscription(preference, sensor)]
 
 
-def notify_sensor_ice_warning(sensor: Sensor, reading: SensorReading, *, force: bool = False) -> dict:
+def notify_sensor_ice_warning_after_ingest(
+    sensor_id: int,
+    reading_id: int,
+    new_level: str,
+) -> dict:
+    """Run push digest after webhook DB transaction commits (avoids idle-in-transaction)."""
+    sensor = Sensor.objects.select_related('municipality').get(pk=sensor_id)
+    reading = SensorReading.objects.select_related('sensor', 'sensor__municipality').get(
+        pk=reading_id,
+    )
+    return notify_sensor_ice_warning(sensor, reading, new_level=new_level)
+
+
+def notify_sensor_ice_warning(
+    sensor: Sensor,
+    reading: SensorReading,
+    *,
+    new_level: str | None = None,
+    force: bool = False,
+) -> dict:
     """
-    Evaluate ice warning for a new reading and send grouped digest push notifications.
+    Send grouped digest push notifications for a new reading.
+    Pass new_level when already computed during ingest to skip duplicate DB work.
     """
-    new_level = _ice_warning_level_for_reading(reading)
+    if new_level is None:
+        new_level = _ice_warning_level_for_reading(reading)
 
     if new_level == ICE_WARNING_NONE:
         PushNotificationState.objects.filter(sensor=sensor).delete()

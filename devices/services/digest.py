@@ -3,14 +3,9 @@ from dataclasses import dataclass
 from django.db.models import Q
 
 from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, ICE_WARNING_SEVERITY, alert_status_for_level
-from core.ice_warning_state import ice_warning_level_for_reading
 from devices.models import AlertPreference
 from readings.selectors import latest_readings_queryset
 from sensors.models import Sensor
-
-
-def _ice_warning_level_for_reading(reading) -> str:
-    return ice_warning_level_for_reading(reading)
 
 
 def _matches_severity_filter(severity_filter: str, alert_status: str) -> bool:
@@ -86,7 +81,7 @@ def collect_warning_sensors(preference: AlertPreference) -> list[WarningSensorEn
     latest_readings = latest_readings_queryset().filter(sensor_id__in=subscribed_ids)
 
     for reading in latest_readings:
-        level = _ice_warning_level_for_reading(reading)
+        level = reading.sensor.ice_warning_level or ICE_WARNING_NONE
         if level == ICE_WARNING_NONE:
             continue
 

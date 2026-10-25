@@ -190,10 +190,18 @@ def ingest_lorawan_payload(
     )
 
     from core.ice_warning_state import update_sensor_ice_warning_from_reading
-    from devices.services.subscriptions import notify_sensor_ice_warning
+    from devices.services.subscriptions import notify_sensor_ice_warning_after_ingest
 
-    update_sensor_ice_warning_from_reading(sensor, reading)
-    notify_sensor_ice_warning(sensor, reading)
+    new_level = update_sensor_ice_warning_from_reading(sensor, reading)
+    sensor_id = sensor.pk
+    reading_id = reading.pk
+    transaction.on_commit(
+        lambda: notify_sensor_ice_warning_after_ingest(
+            sensor_id,
+            reading_id,
+            new_level,
+        ),
+    )
     return reading
 
 
