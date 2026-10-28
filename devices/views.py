@@ -111,7 +111,7 @@ class TestPushView(APIView):
                     'sensor_name': 'B173 Hof Nord',
                     'municipality_name': 'Hof',
                     'title': 'Test Warnung',
-                    'body': 'Akute Eisbildung wahrscheinlich',
+                    'body': 'Glätte sehr wahrscheinlich',
                 },
                 request_only=True,
             )

@@ -162,7 +162,7 @@ class DashboardMapDataView(APIView):
                                     'battery_voltage': 2.7,
                                 },
                                 'ice_warning_level': 'acute_ice',
-                                'ice_warning_label': 'Akute Eisbildung wahrscheinlich',
+                                'ice_warning_label': 'Glätte sehr wahrscheinlich',
                                 'alert_status': 'red',
                             }
                         ],

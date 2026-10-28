@@ -196,7 +196,7 @@ Function: `send_digest_push_notification()`
 Notification:
 
 - `title`: `Warnung: Stammbach`
-- `body`: `Erhöhte Eisgefahr an 3 Standorten`
+- `body`: `Glätte wahrscheinlich an 3 Standorten`
 
 Data payload for Flutter:
 
@@ -211,7 +211,7 @@ Data payload for Flutter:
   "primary_sensor_id": "60",
   "worst_level": "increased_ice",
   "title": "Warnung: Stammbach",
-  "body": "Erhöhte Eisgefahr an 3 Standorten"
+  "body": "Glätte wahrscheinlich an 3 Standorten"
 }
 ```
 
@@ -230,7 +230,7 @@ When only one subscribed sensor is in warning state, the digest still uses `type
   "primary_sensor_id": "60",
   "worst_level": "acute_ice",
   "title": "Warnung: Stammbach 1",
-  "body": "Akute Eisbildung wahrscheinlich"
+  "body": "Glätte sehr wahrscheinlich"
 }
 ```
 
@@ -303,7 +303,7 @@ Content-Type: application/json
   "sensor_name": "B173 Hof Nord",
   "municipality_name": "Hof",
   "title": "Test Warnung",
-  "body": "Akute Eisbildung wahrscheinlich"
+  "body": "Glätte sehr wahrscheinlich"
 }
 ```
 

@@ -235,9 +235,9 @@ reading) with **reset hysteresis** so marker colours do not flicker at threshold
 
 | Level | Label | Trigger (activation) | Reset (deactivation) |
 |---|---|---|---|
-| `possible_slip` | Advisory · Mögliche Rutschgefahr | Road ≤ 2.0 °C and \|road − dew point\| ≤ 2.0 °C | Road **> 2.5 °C** |
-| `increased_ice` | Warning · Erhöhte Eisgefahr | Road ≤ 1.0 °C and \|road − dew point\| ≤ 1.0 °C, **or** humidity ≥ 90 % with road ≤ 1.5 °C | Road **> 1.5 °C** |
-| `acute_ice` | Critical · Akute Eisbildung | Road ≤ 0.0 °C and \|road − dew point\| ≤ 0.5 °C, **or** road ≤ 0.0 °C and precipitation in `raw_data` | Road **> 0.5 °C** |
+| `possible_slip` | Glätte möglich | Road ≤ 2.0 °C and \|road − dew point\| ≤ 2.0 °C | Road **> 2.5 °C** |
+| `increased_ice` | Glätte wahrscheinlich | Road ≤ 1.0 °C and \|road − dew point\| ≤ 1.0 °C, **or** humidity ≥ 90 % with road ≤ 1.5 °C | Road **> 1.5 °C** |
+| `acute_ice` | Glätte sehr wahrscheinlich | Road ≤ 0.0 °C and \|road − dew point\| ≤ 0.5 °C, **or** road ≤ 0.0 °C and precipitation in `raw_data` | Road **> 0.5 °C** |
 
 Escalation to a higher level is immediate; downgrades only after the reset condition for the
 current level is met, then the trigger rules are re-evaluated.

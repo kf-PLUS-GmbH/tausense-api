@@ -32,10 +32,10 @@ ICE_WARNING_LEVELS = (
 )
 
 ICE_WARNING_LABELS = {
-    ICE_WARNING_NONE: 'Keine Warnung',
-    ICE_WARNING_POSSIBLE_SLIP: 'Mögliche Rutschgefahr',
-    ICE_WARNING_INCREASED_ICE: 'Erhöhte Eisgefahr',
-    ICE_WARNING_ACUTE_ICE: 'Akute Eisbildung wahrscheinlich',
+    ICE_WARNING_NONE: 'Keine Auffälligkeiten',
+    ICE_WARNING_POSSIBLE_SLIP: 'Glätte möglich',
+    ICE_WARNING_INCREASED_ICE: 'Glätte wahrscheinlich',
+    ICE_WARNING_ACUTE_ICE: 'Glätte sehr wahrscheinlich',
 }
 
 ALERT_STATUS_BY_LEVEL = {

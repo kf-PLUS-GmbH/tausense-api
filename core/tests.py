@@ -1,5 +1,6 @@
 from django.test import SimpleTestCase
 
+from core.utils import calculate_trend
 from core.ice_warning import (
     ICE_WARNING_ACUTE_ICE,
     ICE_WARNING_INCREASED_ICE,
@@ -102,3 +103,13 @@ class IceWarningHysteresisTests(SimpleTestCase):
         self.assertEqual(alert_status_for_level(ICE_WARNING_POSSIBLE_SLIP), 'yellow')
         self.assertEqual(alert_status_for_level(ICE_WARNING_INCREASED_ICE), 'orange')
         self.assertEqual(alert_status_for_level(ICE_WARNING_ACUTE_ICE), 'red')
+
+
+class TrendCalculationTests(SimpleTestCase):
+    def test_stable_within_threshold(self):
+        self.assertEqual(calculate_trend(5.0, 4.85), 'stable')
+        self.assertEqual(calculate_trend(5.0, None), 'stable')
+
+    def test_rising_and_falling_from_0_2_delta(self):
+        self.assertEqual(calculate_trend(5.0, 4.8), 'rising')
+        self.assertEqual(calculate_trend(4.8, 5.0), 'falling')

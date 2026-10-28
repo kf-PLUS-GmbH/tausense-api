@@ -1,5 +1,7 @@
 import math
 
+TREND_DELTA_THRESHOLD = 0.2
+
 
 def calculate_dew_point(air_temperature: float, humidity: float) -> float:
     """
@@ -16,8 +18,8 @@ def calculate_trend(current_value: float, previous_value: float | None) -> str:
     if previous_value is None:
         return 'stable'
     delta = current_value - previous_value
-    if delta >= 0.5:
+    if delta >= TREND_DELTA_THRESHOLD:
         return 'rising'
-    if delta <= -0.5:
+    if delta <= -TREND_DELTA_THRESHOLD:
         return 'falling'
     return 'stable'
