@@ -130,6 +130,8 @@ class UsageAnalyticsDashboardTests(TestCase):
         report = build_dashboard(UsageAnalyticsInstallation.objects.all(), period_days=30)
         self.assertGreaterEqual(report.total_sessions, 3)
         self.assertEqual(report.screens[0].key, 'map')
+        self.assertEqual(report.screens[0].bar_width_pct, 100)
+        self.assertEqual(report.screens[1].bar_width_pct, 25)
 
     def test_build_installation_report(self):
         record = UsageAnalyticsInstallation.objects.first()

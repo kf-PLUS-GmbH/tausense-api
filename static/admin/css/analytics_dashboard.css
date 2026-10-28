@@ -134,7 +134,7 @@
 
 .analytics-chart {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 4px;
   height: 180px;
   padding-top: 8px;
@@ -143,8 +143,10 @@
 .analytics-chart__bar-wrap {
   flex: 1;
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
   gap: 6px;
 }
@@ -152,6 +154,7 @@
 .analytics-chart__bar {
   width: 100%;
   max-width: 28px;
+  min-height: 2px;
   border-radius: 8px 8px 4px 4px;
   background: linear-gradient(180deg, #4a8fd4, var(--a-brand));
   transition: height 0.2s ease;

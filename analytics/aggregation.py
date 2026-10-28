@@ -87,6 +87,7 @@ class RankedMetric:
     label: str
     count: int
     share_pct: float
+    bar_width_pct: int = 0
 
 
 @dataclass
@@ -192,14 +193,18 @@ def _to_ranked(
 ) -> list[RankedMetric]:
     if total is None:
         total = sum(counter.values())
+    items = _top_items(counter, limit=limit)
+    max_count = max((count for _, count in items), default=0)
     ranked = []
-    for key, count in _top_items(counter, limit=limit):
+    for key, count in items:
+        bar_width_pct = int(round(100.0 * count / max_count)) if max_count else 0
         ranked.append(
             RankedMetric(
                 key=key,
                 label=label_fn(key),
                 count=count,
                 share_pct=_pct(count, total),
+                bar_width_pct=bar_width_pct,
             ),
         )
     return ranked

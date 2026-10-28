@@ -52,9 +52,9 @@
       {% if report.total_sessions %}
         <div class="analytics-chart">
           {% for point in report.sessions_series %}
-            {% widthratio point.sessions max_sessions_in_day 100 as bar_height %}
+            {% widthratio point.sessions max_sessions_in_day 148 as bar_px %}
             <div class="analytics-chart__bar-wrap">
-              <div class="analytics-chart__bar" style="height: {% if bar_height < 4 and point.sessions %}4{% else %}{{ bar_height }}{% endif %}%; min-height: {% if point.sessions %}6px{% else %}2px{% endif %};"></div>
+              <div class="analytics-chart__bar" style="height: {% if point.sessions and bar_px < 6 %}6{% else %}{{ bar_px }}{% endif %}px;"></div>
               <span class="analytics-chart__label">{{ point.label }}</span>
             </div>
           {% endfor %}
