@@ -4,7 +4,6 @@ from django.db.models import Q
 
 from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, ICE_WARNING_SEVERITY, alert_status_for_level
 from devices.models import AlertPreference
-from readings.selectors import latest_readings_queryset
 from sensors.models import Sensor
 
 
@@ -88,10 +87,22 @@ def collect_warning_sensors(preference: AlertPreference) -> list[WarningSensorEn
         return []
 
     warnings: list[WarningSensorEntry] = []
-    latest_readings = latest_readings_queryset().filter(sensor_id__in=subscribed_ids)
+    sensors = (
+        Sensor.objects.filter(id__in=subscribed_ids, active=True)
+        .select_related('municipality')
+        .only(
+            'id',
+            'name',
+            'display_name',
+            'operator_name',
+            'ice_warning_level',
+            'municipality_id',
+            'municipality__name',
+        )
+    )
 
-    for reading in latest_readings:
-        level = reading.sensor.ice_warning_level or ICE_WARNING_NONE
+    for sensor in sensors:
+        level = sensor.ice_warning_level or ICE_WARNING_NONE
         if level == ICE_WARNING_NONE:
             continue
 
@@ -99,7 +110,6 @@ def collect_warning_sensors(preference: AlertPreference) -> list[WarningSensorEn
         if not _matches_severity_filter(preference.severity_filter, alert_status):
             continue
 
-        sensor = reading.sensor
         municipality_name = _area_label_for_sensor(sensor)
         warnings.append(
             WarningSensorEntry(

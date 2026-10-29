@@ -1,11 +1,24 @@
 import logging
 import time
 
+from django.db import close_old_connections
 from django.utils.deprecation import MiddlewareMixin
 
 from core.query_profiling import QueryProfiler
 
 logger = logging.getLogger('core.performance')
+
+
+class CloseDbConnectionMiddleware(MiddlewareMixin):
+    """Release the DB connection after each request (important with runserver/threading)."""
+
+    def process_response(self, request, response):
+        close_old_connections()
+        return response
+
+    def process_exception(self, request, exception):
+        close_old_connections()
+        return None
 
 
 class StaffApiProfilingMiddleware(MiddlewareMixin):

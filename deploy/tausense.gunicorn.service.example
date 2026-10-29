@@ -1,0 +1,28 @@
+# Example systemd unit — copy to /etc/systemd/system/tausense.service
+# Do NOT use manage.py runserver in production.
+
+[Unit]
+Description=TauSense Django Backend (Gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/tausense-api
+Environment="PATH=/root/tausense-api/venv/bin"
+EnvironmentFile=-/root/tausense-api/.env
+ExecStart=/root/tausense-api/venv/bin/gunicorn config.wsgi:application \
+  --bind 127.0.0.1:8000 \
+  --workers 3 \
+  --threads 2 \
+  --timeout 120 \
+  --max-requests 1000 \
+  --max-requests-jitter 50 \
+  --access-logfile - \
+  --error-logfile -
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

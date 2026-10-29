@@ -68,6 +68,11 @@ def build_database_config(release_mode: str) -> dict:
             f'(legacy POSTGRES_* without suffix is supported for testing).'
         )
 
+    conn_max_age = int(os.environ.get('DB_CONN_MAX_AGE', '0'))
+    options = {}
+    if conn_max_age > 0:
+        options['CONN_HEALTH_CHECKS'] = True
+
     return {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -76,5 +81,8 @@ def build_database_config(release_mode: str) -> dict:
             'PASSWORD': password,
             'HOST': host,
             'PORT': port or '5432',
+            'CONN_MAX_AGE': conn_max_age,
+            'ATOMIC_REQUESTS': False,
+            'OPTIONS': options,
         }
     }
