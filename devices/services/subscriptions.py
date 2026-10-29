@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from core.ice_warning import ICE_WARNING_NONE, alert_status_for_level
@@ -159,9 +160,10 @@ def notify_sensor_ice_warning(
         new_level = _ice_warning_level_for_reading(reading)
 
     if new_level == ICE_WARNING_NONE:
-        PushNotificationState.objects.filter(sensor=sensor).delete()
-        for preference in _preferences_for_sensor(sensor):
-            _reset_digest_state_if_cleared(preference)
+        with transaction.atomic():
+            PushNotificationState.objects.filter(sensor=sensor).delete()
+            for preference in _preferences_for_sensor(sensor):
+                _reset_digest_state_if_cleared(preference)
         return {
             'notified': False,
             'new_level': new_level,
@@ -172,9 +174,7 @@ def notify_sensor_ice_warning(
     alert_status = alert_status_for_level(new_level)
     candidates = find_subscribed_preferences(sensor, alert_status)
 
-    sent_count = 0
-    failed_count = 0
-    notified_users = 0
+    deliveries: list[tuple[list[PushToken], object, str, int, int]] = []
     processed_users: set[str] = set()
 
     for preference, tokens in candidates:
@@ -196,7 +196,21 @@ def notify_sensor_ice_warning(
         ):
             continue
 
-        notified_users += 1
+        deliveries.append(
+            (
+                tokens,
+                digest,
+                preference.user_id,
+                digest.worst_severity,
+                digest.sensor_count,
+            ),
+        )
+
+    sent_count = 0
+    failed_count = 0
+    notified_users = len(deliveries)
+
+    for tokens, digest, user_id, worst_severity, sensor_count in deliveries:
         for token in tokens:
             result = send_digest_push_notification(fcm_token=token.fcm_token, digest=digest)
             if result.success:
@@ -204,11 +218,12 @@ def notify_sensor_ice_warning(
             else:
                 failed_count += 1
 
-        _record_digest_state(
-            preference.user_id,
-            worst_severity=digest.worst_severity,
-            sensor_count=digest.sensor_count,
-        )
+        with transaction.atomic():
+            _record_digest_state(
+                user_id,
+                worst_severity=worst_severity,
+                sensor_count=sensor_count,
+            )
 
     logger.info(
         'Ice warning digest for sensor_id=%s (%s): %s users notified, %s sent, %s failed.',

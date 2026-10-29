@@ -1,9 +1,13 @@
+import logging
+import threading
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from django.conf import settings
-from django.db import transaction
+from django.db import close_old_connections, transaction
+
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 
 from readings.models import SensorReading
@@ -195,13 +199,25 @@ def ingest_lorawan_payload(
     new_level = update_sensor_ice_warning_from_reading(sensor, reading)
     sensor_id = sensor.pk
     reading_id = reading.pk
-    transaction.on_commit(
-        lambda: notify_sensor_ice_warning_after_ingest(
-            sensor_id,
-            reading_id,
-            new_level,
-        ),
-    )
+
+    def _run_push_after_commit(s_id=sensor_id, r_id=reading_id, level=new_level):
+        close_old_connections()
+        try:
+            notify_sensor_ice_warning_after_ingest(s_id, r_id, level)
+        except Exception:
+            logger.exception('Push after webhook ingest failed (sensor_id=%s)', s_id)
+        finally:
+            close_old_connections()
+
+    def _schedule_push(s_id=sensor_id, r_id=reading_id, level=new_level):
+        threading.Thread(
+            target=_run_push_after_commit,
+            args=(s_id, r_id, level),
+            daemon=True,
+            name='tausense-push-after-ingest',
+        ).start()
+
+    transaction.on_commit(_schedule_push)
     return reading
 
 

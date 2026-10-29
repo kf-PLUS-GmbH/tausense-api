@@ -457,7 +457,7 @@ class MunicipalityDigestPushTests(TestCase):
         digest = build_warning_digest(preference, warnings)
 
         self.assertEqual(digest.sensor_count, 1)
-        self.assertEqual(digest.title, 'Warnung: Stammbach 1')
+        self.assertEqual(digest.title, 'Warnung: Stammbach')
 
 
 class PushServiceTests(TestCase):

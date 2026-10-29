@@ -229,7 +229,7 @@ When only one subscribed sensor is in warning state, the digest still uses `type
   "municipality_name": "Stammbach",
   "primary_sensor_id": "60",
   "worst_level": "acute_ice",
-  "title": "Warnung: Stammbach 1",
+  "title": "Warnung: Stammbach",
   "body": "Glätte sehr wahrscheinlich"
 }
 ```

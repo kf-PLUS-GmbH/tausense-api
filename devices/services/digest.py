@@ -8,6 +8,16 @@ from readings.selectors import latest_readings_queryset
 from sensors.models import Sensor
 
 
+def _area_label_for_sensor(sensor: Sensor) -> str:
+    """Kommune / Betreiber für Push-Titel (nicht Sensor-Standortname wie „Leupoldsgrün 1“)."""
+    operator = (sensor.operator_name or '').strip()
+    if operator:
+        return operator
+    if sensor.municipality_id:
+        return sensor.municipality.name
+    return ''
+
+
 def _matches_severity_filter(severity_filter: str, alert_status: str) -> bool:
     if severity_filter == AlertPreference.SEVERITY_RED:
         return alert_status == 'red'
@@ -90,7 +100,7 @@ def collect_warning_sensors(preference: AlertPreference) -> list[WarningSensorEn
             continue
 
         sensor = reading.sensor
-        municipality_name = sensor.municipality.name if sensor.municipality else (sensor.operator_name or '')
+        municipality_name = _area_label_for_sensor(sensor)
         warnings.append(
             WarningSensorEntry(
                 sensor_id=sensor.id,
@@ -120,7 +130,8 @@ def build_warning_digest(preference: AlertPreference, warnings: list[WarningSens
 
     if count == 1:
         entry = warnings[0]
-        title = f'Warnung: {entry.sensor_name}'
+        area_label = entry.municipality_name or entry.sensor_name
+        title = f'Warnung: {area_label}'
         body = ICE_WARNING_LABELS[entry.level]
         municipality_name = entry.municipality_name
     else:
