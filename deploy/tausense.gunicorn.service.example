@@ -12,8 +12,9 @@ Group=root
 WorkingDirectory=/root/tausense-api
 Environment="PATH=/root/tausense-api/venv/bin"
 EnvironmentFile=-/root/tausense-api/.env
+# Direct public port (no nginx) — same as: manage.py runserver 0.0.0.0:8888
 ExecStart=/root/tausense-api/venv/bin/gunicorn config.wsgi:application \
-  --bind 127.0.0.1:8000 \
+  --bind 0.0.0.0:8888 \
   --workers 3 \
   --threads 2 \
   --timeout 120 \
