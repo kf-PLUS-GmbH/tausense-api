@@ -58,7 +58,9 @@ python manage.py setup_admin_groups --viewer lese.nur
 
 Create the user first (`createsuperuser` or superuser → Users). Staff users need `is_staff=True` (the command sets this when using `--promote` / `--viewer`).
 
-Production: run `collectstatic` so admin styling and logo are served.
+Production (Gunicorn): install `whitenoise` (in requirements) and run
+`python manage.py collectstatic --noinput` after each deploy so admin CSS/JS and
+the TauSense logo are served (runserver did this automatically in dev).
 
 ## Environment / database modes
 

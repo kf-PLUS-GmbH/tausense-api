@@ -1,5 +1,10 @@
 # Example systemd unit — copy to /etc/systemd/system/tausense.service
 # Do NOT use manage.py runserver in production.
+#
+# After each deploy (Gunicorn does not serve static files like runserver):
+#   cd /root/tausense-api && ./venv/bin/pip install -r requirements.txt
+#   ./venv/bin/python manage.py collectstatic --noinput
+#   systemctl restart tausense
 
 [Unit]
 Description=TauSense Django Backend (Gunicorn)
