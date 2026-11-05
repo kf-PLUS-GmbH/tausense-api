@@ -5,13 +5,12 @@ Trigger (activation) uses evaluate_ice_warning(); the active map colour uses
 transition_ice_warning_level() so levels do not flicker at the boundary.
 
 Levels:
-- Advisory (yellow): T_road <= 2.0 °C and |T_road - Td| <= 2.0 °C
+- Advisory (yellow): T_road <= 2.0 °C and (T_road - Td) <= 2.0 °C
   Reset: T_road > 2.5 °C
-- Warning (orange): T_road <= 1.0 °C and |T_road - Td| <= 1.0 °C,
+- Warning (orange): T_road <= 1.0 °C and (T_road - Td) <= 1.0 °C,
   or RH >= 90 % and T_road <= 1.5 °C
   Reset: T_road > 1.5 °C
-- Critical (red): T_road <= 0.0 °C and |T_road - Td| <= 0.5 °C,
-  or T_road <= 0.0 °C and precipitation detected
+- Critical (red): T_road <= 0.0 °C and (T_road - Td) <= 0.5 °C
   Reset: T_road > 0.5 °C
 """
 
@@ -98,21 +97,31 @@ def evaluate_ice_warning(
 ) -> str:
     """
     Instantaneous trigger level from the current measurement (most severe wins).
+
+    ``precipitation`` is accepted for call-site compatibility but is not used in
+    the trigger rules.
     """
-    diff = abs(road_temperature - dew_point)
+    del precipitation
+    road_minus_dew = road_temperature - dew_point
+    best = ICE_WARNING_NONE
 
-    if road_temperature <= 0.0 and (diff <= 0.5 or precipitation):
-        return ICE_WARNING_ACUTE_ICE
+    def consider(level: str) -> None:
+        nonlocal best
+        if ICE_WARNING_SEVERITY[level] > ICE_WARNING_SEVERITY[best]:
+            best = level
 
-    if (road_temperature <= 1.0 and diff <= 1.0) or (
+    if road_temperature <= 0.0 and road_minus_dew <= 0.5:
+        consider(ICE_WARNING_ACUTE_ICE)
+
+    if (road_temperature <= 1.0 and road_minus_dew <= 1.0) or (
         humidity >= 90.0 and road_temperature <= 1.5
     ):
-        return ICE_WARNING_INCREASED_ICE
+        consider(ICE_WARNING_INCREASED_ICE)
 
-    if road_temperature <= 2.0 and diff <= 2.0:
-        return ICE_WARNING_POSSIBLE_SLIP
+    if road_temperature <= 2.0 and road_minus_dew <= 2.0:
+        consider(ICE_WARNING_POSSIBLE_SLIP)
 
-    return ICE_WARNING_NONE
+    return best
 
 
 def _reset_possible_slip(road_temperature: float) -> bool:

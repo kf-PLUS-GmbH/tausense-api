@@ -33,11 +33,14 @@ class IceWarningEvaluationTests(SimpleTestCase):
         self.assertEqual(evaluate_ice_warning(0.0, 0.3, 80.0), ICE_WARNING_ACUTE_ICE)
         self.assertEqual(evaluate_ice_warning(-1.0, -0.8, 92.0), ICE_WARNING_ACUTE_ICE)
 
-    def test_acute_ice_with_precipitation(self):
+    def test_precipitation_alone_does_not_trigger_critical(self):
         self.assertEqual(
-            evaluate_ice_warning(0.0, 3.0, 80.0, precipitation=True),
-            ICE_WARNING_ACUTE_ICE,
+            evaluate_ice_warning(1.0, -5.0, 80.0, precipitation=True),
+            ICE_WARNING_NONE,
         )
+
+    def test_signed_road_minus_dew_no_advisory_when_dew_far_below_road(self):
+        self.assertEqual(evaluate_ice_warning(2.0, -1.0, 80.0), ICE_WARNING_NONE)
 
     def test_most_severe_level_wins(self):
         self.assertEqual(evaluate_ice_warning(0.0, 0.0, 95.0), ICE_WARNING_ACUTE_ICE)
@@ -91,7 +94,7 @@ class IceWarningHysteresisTests(SimpleTestCase):
     def test_critical_clears_when_road_above_0_5(self):
         self.assertEqual(
             self._transition(ICE_WARNING_ACUTE_ICE, 0.7, dew=2.0),
-            ICE_WARNING_POSSIBLE_SLIP,
+            ICE_WARNING_INCREASED_ICE,
         )
         self.assertEqual(
             self._transition(ICE_WARNING_ACUTE_ICE, 3.0, dew=2.0),
