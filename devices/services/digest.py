@@ -33,7 +33,7 @@ _LEVELS_FOR_DIGEST_BODY = (
 )
 
 # Kurztexte für Push-Body (Karte/App behalten ICE_WARNING_LABELS).
-_PUSH_BODY_PREFIX = 'Glättehinweis: '
+_PUSH_TITLE_PREFIX = 'Glättehinweis: '
 _PUSH_LEVEL_SHORT = {
     ICE_WARNING_ACUTE_ICE: 'sehr wahrscheinlich',
     ICE_WARNING_INCREASED_ICE: 'wahrscheinlich',
@@ -64,8 +64,7 @@ def _sensoren_phrase(count: int) -> str:
 
 
 def _digest_body_for_warnings(warnings: list[WarningSensorEntry]) -> str:
-    """Two-line push body: total sensors, then per-level counts."""
-    count = len(warnings)
+    """Push body: per-level counts only (sensor count is in the title)."""
     by_level = Counter(entry.level for entry in warnings)
     active_levels = [level for level in _LEVELS_FOR_DIGEST_BODY if by_level.get(level, 0)]
     if not active_levels:
@@ -73,14 +72,10 @@ def _digest_body_for_warnings(warnings: list[WarningSensorEntry]) -> str:
 
     if len(active_levels) == 1:
         level = active_levels[0]
-        detail = f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}'
-    else:
-        detail = ' · '.join(
-            f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}' for level in active_levels
-        )
-
-    header = f'{_PUSH_BODY_PREFIX}{_sensoren_phrase(count)}'
-    return f'{header}\n{detail}'
+        return f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}'
+    return ' · '.join(
+        f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}' for level in active_levels
+    )
 
 
 @dataclass(frozen=True)
@@ -189,12 +184,12 @@ def build_warning_digest(preference: AlertPreference, warnings: list[WarningSens
     if count == 1:
         entry = warnings[0]
         area_label = entry.municipality_name or entry.sensor_name
-        title = f'Warnung: {area_label}'
+        title = f'{_PUSH_TITLE_PREFIX}{area_label}'
         body = ICE_WARNING_LABELS[entry.level]
         municipality_name = entry.municipality_name
     else:
-        label = area_name or f'{count} Sensoren'
-        title = f'Warnung: {label}'
+        label = area_name or _sensoren_phrase(count)
+        title = f'{_PUSH_TITLE_PREFIX}{label}'
         body = _digest_body_for_warnings(warnings)
         municipality_name = area_name or worst.municipality_name
 

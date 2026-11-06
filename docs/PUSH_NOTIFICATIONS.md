@@ -195,8 +195,8 @@ Function: `send_digest_push_notification()`
 
 Notification:
 
-- `title`: `Warnung: Stammbach`
-- `body`: two lines, e.g. `Glättehinweis: 50 Sensoren` + newline + `11 sehr wahrscheinlich · 39 wahrscheinlich`
+- `title`: `Glättehinweis: Stammbach` or `Glättehinweis: 50 Sensoren` when the subscription spans several areas
+- `body`: per-level line only, e.g. `11 sehr wahrscheinlich · 39 wahrscheinlich` or `3 wahrscheinlich` if only one level
 
 Data payload for Flutter:
 
@@ -210,8 +210,8 @@ Data payload for Flutter:
   "municipality_name": "Stammbach",
   "primary_sensor_id": "60",
   "worst_level": "increased_ice",
-  "title": "Warnung: Stammbach",
-  "body": "Glättehinweis: 3 Sensoren\n3 wahrscheinlich"
+  "title": "Glättehinweis: Stammbach",
+  "body": "3 wahrscheinlich"
 }
 ```
 
@@ -229,7 +229,7 @@ When only one subscribed sensor is in warning state, the digest still uses `type
   "municipality_name": "Stammbach",
   "primary_sensor_id": "60",
   "worst_level": "acute_ice",
-  "title": "Warnung: Stammbach",
+  "title": "Glättehinweis: Stammbach",
   "body": "Glätte sehr wahrscheinlich"
 }
 ```
