@@ -196,7 +196,7 @@ Function: `send_digest_push_notification()`
 Notification:
 
 - `title`: `Warnung: Stammbach`
-- `body`: `Glätte wahrscheinlich an 3 Standorten` (single level), or e.g. `Glätte sehr wahrscheinlich an 2 Standorten, Glätte wahrscheinlich an 1 Standort` when levels differ
+- `body`: two lines, e.g. `Glättehinweis: 50 Sensoren` + newline + `11 sehr wahrscheinlich · 39 wahrscheinlich`
 
 Data payload for Flutter:
 
@@ -211,7 +211,7 @@ Data payload for Flutter:
   "primary_sensor_id": "60",
   "worst_level": "increased_ice",
   "title": "Warnung: Stammbach",
-  "body": "Glätte wahrscheinlich an 3 Standorten"
+  "body": "Glättehinweis: 3 Sensoren\n3 wahrscheinlich"
 }
 ```
 

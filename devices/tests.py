@@ -453,7 +453,10 @@ class MunicipalityDigestPushTests(TestCase):
         digest = mock_send.call_args.kwargs['digest']
         self.assertEqual(digest.sensor_count, 2)
         self.assertEqual(set(digest.sensor_ids), {self.sensor_one.id, self.sensor_two.id})
-        self.assertIn('2 Standorten', digest.body)
+        self.assertEqual(
+            digest.body,
+            'Glättehinweis: 2 Sensoren\n2 wahrscheinlich',
+        )
 
     def test_build_digest_for_single_sensor(self):
         preference = AlertPreference.objects.get(user_id='user-digest')
@@ -491,7 +494,8 @@ class DigestBodyFormattingTests(SimpleTestCase):
         body = _digest_body_for_warnings(warnings)
         self.assertEqual(
             body,
-            'Glätte sehr wahrscheinlich an 11 Standorten, Glätte wahrscheinlich an 39 Standorten',
+            'Glättehinweis: 50 Sensoren\n'
+            '11 sehr wahrscheinlich · 39 wahrscheinlich',
         )
 
 

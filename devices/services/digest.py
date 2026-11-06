@@ -32,6 +32,14 @@ _LEVELS_FOR_DIGEST_BODY = (
     ICE_WARNING_POSSIBLE_SLIP,
 )
 
+# Kurztexte für Push-Body (Karte/App behalten ICE_WARNING_LABELS).
+_PUSH_BODY_PREFIX = 'Glättehinweis: '
+_PUSH_LEVEL_SHORT = {
+    ICE_WARNING_ACUTE_ICE: 'sehr wahrscheinlich',
+    ICE_WARNING_INCREASED_ICE: 'wahrscheinlich',
+    ICE_WARNING_POSSIBLE_SLIP: 'möglich',
+}
+
 
 def _matches_severity_filter(severity_filter: str, alert_status: str) -> bool:
     if severity_filter == AlertPreference.SEVERITY_RED:
@@ -51,23 +59,28 @@ class WarningSensorEntry:
     severity: int
 
 
-def _standorte_phrase(count: int) -> str:
-    if count == 1:
-        return '1 Standort'
-    return f'{count} Standorten'
+def _sensoren_phrase(count: int) -> str:
+    return '1 Sensor' if count == 1 else f'{count} Sensoren'
 
 
 def _digest_body_for_warnings(warnings: list[WarningSensorEntry]) -> str:
-    """Body text with per-level counts (most severe first)."""
+    """Two-line push body: total sensors, then per-level counts."""
+    count = len(warnings)
     by_level = Counter(entry.level for entry in warnings)
-    parts: list[str] = []
-    for level in _LEVELS_FOR_DIGEST_BODY:
-        n = by_level.get(level, 0)
-        if n:
-            parts.append(f'{ICE_WARNING_LABELS[level]} an {_standorte_phrase(n)}')
-    if not parts:
+    active_levels = [level for level in _LEVELS_FOR_DIGEST_BODY if by_level.get(level, 0)]
+    if not active_levels:
         return ICE_WARNING_LABELS[warnings[0].level]
-    return ', '.join(parts)
+
+    if len(active_levels) == 1:
+        level = active_levels[0]
+        detail = f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}'
+    else:
+        detail = ' · '.join(
+            f'{by_level[level]} {_PUSH_LEVEL_SHORT[level]}' for level in active_levels
+        )
+
+    header = f'{_PUSH_BODY_PREFIX}{_sensoren_phrase(count)}'
+    return f'{header}\n{detail}'
 
 
 @dataclass(frozen=True)
