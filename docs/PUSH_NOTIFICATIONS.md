@@ -196,7 +196,7 @@ Function: `send_digest_push_notification()`
 Notification:
 
 - `title`: `Warnung: Stammbach`
-- `body`: `Glätte wahrscheinlich an 3 Standorten`
+- `body`: `Glätte wahrscheinlich an 3 Standorten` (single level), or e.g. `Glätte sehr wahrscheinlich an 2 Standorten, Glätte wahrscheinlich an 1 Standort` when levels differ
 
 Data payload for Flutter:
 

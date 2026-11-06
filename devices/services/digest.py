@@ -1,8 +1,17 @@
+from collections import Counter
 from dataclasses import dataclass
 
 from django.db.models import Q
 
-from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, ICE_WARNING_SEVERITY, alert_status_for_level
+from core.ice_warning import (
+    ICE_WARNING_ACUTE_ICE,
+    ICE_WARNING_INCREASED_ICE,
+    ICE_WARNING_LABELS,
+    ICE_WARNING_NONE,
+    ICE_WARNING_POSSIBLE_SLIP,
+    ICE_WARNING_SEVERITY,
+    alert_status_for_level,
+)
 from devices.models import AlertPreference
 from sensors.models import Sensor
 
@@ -15,6 +24,13 @@ def _area_label_for_sensor(sensor: Sensor) -> str:
     if sensor.municipality_id:
         return sensor.municipality.name
     return ''
+
+
+_LEVELS_FOR_DIGEST_BODY = (
+    ICE_WARNING_ACUTE_ICE,
+    ICE_WARNING_INCREASED_ICE,
+    ICE_WARNING_POSSIBLE_SLIP,
+)
 
 
 def _matches_severity_filter(severity_filter: str, alert_status: str) -> bool:
@@ -33,6 +49,25 @@ class WarningSensorEntry:
     level: str
     alert_status: str
     severity: int
+
+
+def _standorte_phrase(count: int) -> str:
+    if count == 1:
+        return '1 Standort'
+    return f'{count} Standorten'
+
+
+def _digest_body_for_warnings(warnings: list[WarningSensorEntry]) -> str:
+    """Body text with per-level counts (most severe first)."""
+    by_level = Counter(entry.level for entry in warnings)
+    parts: list[str] = []
+    for level in _LEVELS_FOR_DIGEST_BODY:
+        n = by_level.get(level, 0)
+        if n:
+            parts.append(f'{ICE_WARNING_LABELS[level]} an {_standorte_phrase(n)}')
+    if not parts:
+        return ICE_WARNING_LABELS[warnings[0].level]
+    return ', '.join(parts)
 
 
 @dataclass(frozen=True)
@@ -147,7 +182,7 @@ def build_warning_digest(preference: AlertPreference, warnings: list[WarningSens
     else:
         label = area_name or f'{count} Sensoren'
         title = f'Warnung: {label}'
-        body = f'{ICE_WARNING_LABELS[worst.level]} an {count} Standorten'
+        body = _digest_body_for_warnings(warnings)
         municipality_name = area_name or worst.municipality_name
 
     return WarningDigest(

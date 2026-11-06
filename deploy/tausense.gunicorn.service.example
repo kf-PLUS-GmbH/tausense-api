@@ -1,10 +1,16 @@
 # Example systemd unit — copy to /etc/systemd/system/tausense.service
 # Do NOT use manage.py runserver in production.
 #
+# Gunicorn tuning (typical 4–8 CPU host):
+#   -k gthread  required for --threads (default sync ignores threads)
+#   4 workers × 4 threads ≈ 16 concurrent requests; watch Postgres max_connections
+#   --timeout 30  frees workers quickly if a request hangs (API, not long batch jobs)
+#
 # After each deploy (Gunicorn does not serve static files like runserver):
 #   cd /root/tausense-api && ./venv/bin/pip install -r requirements.txt
 #   ./venv/bin/python manage.py collectstatic --noinput
-#   systemctl restart tausense
+#   cp deploy/tausense.gunicorn.service.example /etc/systemd/system/tausense.service  # if changed
+#   systemctl daemon-reload && systemctl restart tausense
 
 [Unit]
 Description=TauSense Django Backend (Gunicorn)
@@ -20,9 +26,10 @@ EnvironmentFile=-/root/tausense-api/.env
 # Direct public port (no nginx) — same as: manage.py runserver 0.0.0.0:8888
 ExecStart=/root/tausense-api/venv/bin/gunicorn config.wsgi:application \
   --bind 0.0.0.0:8888 \
-  --workers 3 \
-  --threads 2 \
-  --timeout 120 \
+  -k gthread \
+  --workers 4 \
+  --threads 4 \
+  --timeout 30 \
   --max-requests 1000 \
   --max-requests-jitter 50 \
   --access-logfile - \

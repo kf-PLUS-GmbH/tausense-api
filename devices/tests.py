@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
@@ -13,7 +13,12 @@ from core.ice_warning import (
     ICE_WARNING_POSSIBLE_SLIP,
 )
 from devices.models import AlertPreference, PushDigestState, PushToken
-from devices.services.digest import build_warning_digest, collect_warning_sensors
+from devices.services.digest import (
+    WarningSensorEntry,
+    _digest_body_for_warnings,
+    build_warning_digest,
+    collect_warning_sensors,
+)
 from devices.services.push import send_push_notification
 from devices.services.subscriptions import (
     _should_send_digest,
@@ -458,6 +463,36 @@ class MunicipalityDigestPushTests(TestCase):
 
         self.assertEqual(digest.sensor_count, 1)
         self.assertEqual(digest.title, 'Warnung: Stammbach')
+
+
+class DigestBodyFormattingTests(SimpleTestCase):
+    def test_mixed_levels_listed_separately(self):
+        warnings = [
+            WarningSensorEntry(
+                sensor_id=i,
+                sensor_name=f'S{i}',
+                municipality_name='Hof',
+                level=ICE_WARNING_ACUTE_ICE,
+                alert_status='red',
+                severity=3,
+            )
+            for i in range(11)
+        ] + [
+            WarningSensorEntry(
+                sensor_id=100 + i,
+                sensor_name=f'O{i}',
+                municipality_name='Hof',
+                level=ICE_WARNING_INCREASED_ICE,
+                alert_status='orange',
+                severity=2,
+            )
+            for i in range(39)
+        ]
+        body = _digest_body_for_warnings(warnings)
+        self.assertEqual(
+            body,
+            'Glätte sehr wahrscheinlich an 11 Standorten, Glätte wahrscheinlich an 39 Standorten',
+        )
 
 
 class PushServiceTests(TestCase):
