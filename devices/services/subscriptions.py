@@ -8,6 +8,7 @@ from django.utils import timezone
 from core.ice_warning import ICE_WARNING_NONE, alert_status_for_level
 from core.ice_warning_state import ice_warning_level_for_reading
 from devices.models import AlertPreference, PushDigestState, PushNotificationState, PushToken
+from devices.notification_schedule import is_push_allowed_by_schedule
 from devices.services.digest import build_warning_digest, collect_warning_sensors
 from devices.services.push import send_digest_push_notification
 from readings.models import SensorReading
@@ -179,6 +180,8 @@ def notify_sensor_ice_warning(
 
     for preference, tokens in candidates:
         if preference.user_id in processed_users:
+            continue
+        if not is_push_allowed_by_schedule(preference.notification_schedule):
             continue
         processed_users.add(preference.user_id)
 

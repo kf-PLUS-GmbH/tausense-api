@@ -53,6 +53,56 @@ class AlertPreferencesAPITests(TestCase):
         preference = AlertPreference.objects.get(user_id='user-1')
         self.assertEqual(preference.severity_filter, 'orange')
         self.assertEqual(preference.selected_sensor_ids, [1, 2])
+        self.assertEqual(
+            preference.notification_schedule['enabled'],
+            False,
+        )
+
+    def test_save_preferences_notification_schedule(self):
+        response = self.client.post(
+            '/api/v1/alerts/preferences/',
+            {
+                'user_id': 'user-schedule',
+                'severity_filter': 'orange',
+                'notifications_enabled': True,
+                'selected_municipality': 'Hof',
+                'selected_sensor_ids': [14],
+                'notification_schedule': {
+                    'enabled': True,
+                    'start': '03:00',
+                    'end': '22:00',
+                    'timezone': 'Europe/Berlin',
+                },
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        preference = AlertPreference.objects.get(user_id='user-schedule')
+        self.assertTrue(preference.notification_schedule['enabled'])
+        self.assertEqual(preference.notification_schedule['start'], '03:00')
+        self.assertEqual(preference.notification_schedule['end'], '22:00')
+        self.assertEqual(preference.notification_schedule['timezone'], 'Europe/Berlin')
+        self.assertIn('notification_schedule', response.data)
+
+    def test_save_preferences_invalid_timezone(self):
+        response = self.client.post(
+            '/api/v1/alerts/preferences/',
+            {
+                'user_id': 'user-bad-tz',
+                'severity_filter': 'orange',
+                'notifications_enabled': True,
+                'selected_municipality': 'Hof',
+                'selected_sensor_ids': [],
+                'notification_schedule': {
+                    'enabled': True,
+                    'start': '03:00',
+                    'end': '22:00',
+                    'timezone': 'Not/AZone',
+                },
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_save_preferences_with_user_id_header(self):
         response = self.client.post(

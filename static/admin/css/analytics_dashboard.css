@@ -7,9 +7,11 @@
   --a-border: #d8e2ec;
   --a-radius: 16px;
   --a-shadow: 0 10px 36px rgba(0, 56, 113, 0.08);
-  max-width: 1280px;
+  max-width: min(1280px, 100%);
   margin: 0 auto;
   color: #1a2332;
+  box-sizing: border-box;
+  overflow-x: clip;
 }
 
 .analytics-hero {
@@ -104,9 +106,10 @@
 
 .analytics-grid-2 {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 16px;
   margin-bottom: 16px;
+  align-items: start;
 }
 
 @media (max-width: 960px) {
@@ -121,6 +124,9 @@
   background: var(--a-surface);
   border: 1px solid var(--a-border);
   box-shadow: var(--a-shadow);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .analytics-panel h2 {
@@ -132,16 +138,28 @@
   font-weight: 700 !important;
 }
 
+.analytics-chart-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
 .analytics-chart {
   display: flex;
   align-items: stretch;
   gap: 4px;
   height: 180px;
   padding-top: 8px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .analytics-chart__bar-wrap {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   height: 100%;
   display: flex;
@@ -167,6 +185,34 @@
   transform: rotate(180deg);
   max-height: 52px;
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Lange Zeiträume (z. B. 90 Tage): schmale Balken, keine Achsenbeschriftung → kein Seiten-Scroll */
+.analytics-chart--compact {
+  gap: 2px;
+  height: 168px;
+}
+
+.analytics-chart--compact .analytics-chart__bar-wrap {
+  flex: 1 1 3px;
+  max-width: 12px;
+}
+
+.analytics-chart--compact .analytics-chart__bar {
+  max-width: 10px;
+  border-radius: 4px 4px 2px 2px;
+}
+
+.analytics-chart--compact .analytics-chart__label {
+  display: none;
+}
+
+.analytics-chart-hint {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--a-muted);
+  line-height: 1.35;
 }
 
 .analytics-bar-list {
@@ -177,10 +223,17 @@
 
 .analytics-bar-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
   gap: 10px;
   align-items: center;
   font-size: 0.88rem;
+}
+
+.analytics-bar-row > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .analytics-bar-row__track {

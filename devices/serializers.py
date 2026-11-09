@@ -1,7 +1,39 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from rest_framework import serializers
 
 from devices.client_id import resolve_client_id
 from devices.models import AlertPreference, PushToken
+from devices.notification_schedule import (
+    default_notification_schedule,
+    normalize_notification_schedule,
+    parse_hhmm_minutes,
+)
+
+
+class NotificationScheduleSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField()
+    start = serializers.CharField(max_length=5)
+    end = serializers.CharField(max_length=5)
+    timezone = serializers.CharField(max_length=64)
+
+    def validate(self, attrs):
+        try:
+            parse_hhmm_minutes(attrs['start'])
+            parse_hhmm_minutes(attrs['end'])
+        except ValueError as exc:
+            raise serializers.ValidationError({'start': str(exc), 'end': str(exc)}) from exc
+        tz_name = attrs['timezone'].strip()
+        if not tz_name:
+            raise serializers.ValidationError({'timezone': 'Timezone must not be empty.'})
+        try:
+            ZoneInfo(tz_name)
+        except ZoneInfoNotFoundError as exc:
+            raise serializers.ValidationError(
+                {'timezone': f'Unknown IANA timezone: {tz_name}'}
+            ) from exc
+        attrs['timezone'] = tz_name
+        return attrs
 
 
 class AlertPreferenceSerializer(serializers.Serializer):
@@ -19,6 +51,7 @@ class AlertPreferenceSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
+    notification_schedule = NotificationScheduleSerializer(required=False, allow_null=True)
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -40,19 +73,26 @@ class AlertPreferenceSerializer(serializers.Serializer):
         if municipality == '':
             municipality = None
 
+        defaults = {
+            'severity_filter': data['severity_filter'],
+            'notifications_enabled': data['notifications_enabled'],
+            'selected_municipality': municipality,
+            'selected_sensor_ids': data.get('selected_sensor_ids') or [],
+        }
+        raw_schedule = data.get('notification_schedule')
+        if raw_schedule is not None:
+            defaults['notification_schedule'] = normalize_notification_schedule(raw_schedule)
+
         preference, _ = AlertPreference.objects.update_or_create(
             user_id=data['user_id'],
-            defaults={
-                'severity_filter': data['severity_filter'],
-                'notifications_enabled': data['notifications_enabled'],
-                'selected_municipality': municipality,
-                'selected_sensor_ids': data.get('selected_sensor_ids') or [],
-            },
+            defaults=defaults,
         )
         return preference
 
 
 class AlertPreferenceResponseSerializer(serializers.ModelSerializer):
+    notification_schedule = serializers.SerializerMethodField()
+
     class Meta:
         model = AlertPreference
         fields = [
@@ -61,9 +101,13 @@ class AlertPreferenceResponseSerializer(serializers.ModelSerializer):
             'notifications_enabled',
             'selected_municipality',
             'selected_sensor_ids',
+            'notification_schedule',
             'created_at',
             'updated_at',
         ]
+
+    def get_notification_schedule(self, obj):
+        return normalize_notification_schedule(obj.notification_schedule)
 
 
 class PushTokenSerializer(serializers.Serializer):

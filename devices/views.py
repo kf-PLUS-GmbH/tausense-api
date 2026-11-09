@@ -40,13 +40,20 @@ class AlertPreferencesView(APIView):
                     'notifications_enabled': True,
                     'selected_municipality': 'Hof',
                     'selected_sensor_ids': [1, 5, 12],
+                    'notification_schedule': {
+                        'enabled': True,
+                        'start': '03:00',
+                        'end': '22:00',
+                        'timezone': 'Europe/Berlin',
+                    },
                 },
                 request_only=True,
             )
         ],
         description=(
             'Store or update push notification preferences for a local app user. '
-            'severity_filter orange triggers orange and red alerts; red triggers red only.'
+            'severity_filter orange triggers orange and red alerts; red triggers red only. '
+            'Optional notification_schedule limits digests to a local time window (IANA tz).'
         ),
     )
     def post(self, request):

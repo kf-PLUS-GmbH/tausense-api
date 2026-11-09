@@ -68,15 +68,24 @@
     <section class="analytics-panel">
       <h2>Sessions pro Tag</h2>
       {% if report.total_sessions %}
-        <div class="analytics-chart" role="img" aria-label="Sessions pro Tag">
-          {% for point in report.sessions_series %}
-            {% widthratio point.sessions report.max_sessions_in_day 148 as bar_px %}
-            <div class="analytics-chart__bar-wrap" title="{{ point.label }}: {{ point.sessions }} Sessions">
-              <div class="analytics-chart__bar" style="height: {% if point.sessions and bar_px < 6 %}6{% else %}{{ bar_px }}{% endif %}px; opacity: {% if point.sessions %}1{% else %}0.25{% endif %};"></div>
-              <span class="analytics-chart__label">{{ point.label }}</span>
-            </div>
-          {% endfor %}
+        <div class="analytics-chart-scroll">
+          <div
+            class="analytics-chart{% if report.period_days > 31 %} analytics-chart--compact{% endif %}"
+            role="img"
+            aria-label="Sessions pro Tag"
+          >
+            {% for point in report.sessions_series %}
+              {% widthratio point.sessions report.max_sessions_in_day 148 as bar_px %}
+              <div class="analytics-chart__bar-wrap" title="{{ point.label }}: {{ point.sessions }} Sessions">
+                <div class="analytics-chart__bar" style="height: {% if point.sessions and bar_px < 6 %}6{% else %}{{ bar_px }}{% endif %}px; opacity: {% if point.sessions %}1{% else %}0.25{% endif %};"></div>
+                <span class="analytics-chart__label">{{ point.label }}</span>
+              </div>
+            {% endfor %}
+          </div>
         </div>
+        {% if report.period_days > 31 %}
+          <p class="analytics-chart-hint">Bei langen Zeiträumen: Datum und Anzahl per Mauszeiger auf dem Balken.</p>
+        {% endif %}
       {% else %}
         <div class="analytics-empty">Noch keine Sessions im gewählten Zeitraum.</div>
       {% endif %}

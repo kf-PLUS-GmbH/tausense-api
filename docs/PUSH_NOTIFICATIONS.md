@@ -82,7 +82,13 @@ X-User-Id: flutter-install-id
   "severity_filter": "orange",
   "notifications_enabled": true,
   "selected_municipality": "Hof",
-  "selected_sensor_ids": [1, 5, 12]
+  "selected_sensor_ids": [1, 5, 12],
+  "notification_schedule": {
+    "enabled": true,
+    "start": "03:00",
+    "end": "22:00",
+    "timezone": "Europe/Berlin"
+  }
 }
 ```
 
@@ -94,6 +100,15 @@ You can also send `user_id` in the JSON body instead of the `X-User-Id` header.
 | `notifications_enabled` | `true`, `false` | Master switch for remote pushes |
 | `selected_municipality` | string or `null` | Municipality-wide subscription |
 | `selected_sensor_ids` | integer array | Explicit sensor subscriptions |
+| `notification_schedule` | object (optional) | Quiet-hours / allowed window for **digest** pushes |
+
+**`notification_schedule`** (optional, default `enabled: false` so behaviour unchanged for old clients):
+
+| Subfield | Meaning |
+|---|---|
+| `enabled` | If `false`, schedule is ignored (pushes any time). |
+| `start`, `end` | Local times `HH:MM` in `timezone`. Inclusive minutes. If `start == end`, the window is **all day**. If `start > end` on the clock (e.g. 22:00–06:00), the window spans **midnight**. |
+| `timezone` | IANA name (e.g. `Europe/Berlin`); DST is handled by the zone database. |
 
 Response:
 
@@ -104,6 +119,12 @@ Response:
   "notifications_enabled": true,
   "selected_municipality": "Hof",
   "selected_sensor_ids": [1, 5, 12],
+  "notification_schedule": {
+    "enabled": false,
+    "start": "03:00",
+    "end": "22:00",
+    "timezone": "Europe/Berlin"
+  },
   "created_at": "2026-07-30T09:00:00+02:00",
   "updated_at": "2026-07-30T09:00:00+02:00"
 }
@@ -148,6 +169,7 @@ A user receives alerts when all of the following are true:
 - `notifications_enabled=true`
 - the alert color matches `severity_filter`
 - the sensor is in `selected_sensor_ids`, or its municipality name matches, or its `operator_name` matches `selected_municipality`
+- if `notification_schedule.enabled` is true: current local time (in `timezone`) falls inside `[start, end]` (see table above)
 
 Favorites and municipality/operator filters are combined with **OR** logic.
 

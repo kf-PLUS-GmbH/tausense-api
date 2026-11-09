@@ -1,6 +1,7 @@
 from django.db import models
 
 from core.ice_warning import ICE_WARNING_LEVELS
+from devices.notification_schedule import default_notification_schedule
 from sensors.models import Sensor
 
 
@@ -17,6 +18,10 @@ class AlertPreference(models.Model):
     notifications_enabled = models.BooleanField(default=True)
     selected_municipality = models.CharField(max_length=255, null=True, blank=True)
     selected_sensor_ids = models.JSONField(default=list, blank=True)
+    notification_schedule = models.JSONField(
+        default=default_notification_schedule,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
