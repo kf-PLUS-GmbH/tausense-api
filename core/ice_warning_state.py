@@ -3,11 +3,14 @@ from core.ice_warning import (
     precipitation_detected,
     transition_ice_warning_level,
 )
+from core.reading_plausibility import reading_instance_plausible
 from core.utils import calculate_dew_point
 from readings.models import SensorReading
 
 
 def update_sensor_ice_warning_from_reading(sensor, reading: SensorReading) -> str:
+    if not reading_instance_plausible(reading):
+        return sensor.ice_warning_level or ICE_WARNING_NONE
     sensor.refresh_from_db(fields=['ice_warning_level', 'ice_warning_level_since'])
     dew_point = calculate_dew_point(reading.air_temperature, reading.humidity)
     precip = precipitation_detected(raw_data=reading.raw_data)

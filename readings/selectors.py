@@ -59,6 +59,13 @@ def latest_readings_queryset(sensor_id=None, municipality_id=None):
     )
 
 
+def latest_plausible_readings_with_previous(municipality_id=None):
+    """Latest plausible reading per sensor (for map display when current value is invalid)."""
+    if connection.vendor == 'postgresql':
+        return _latest_readings_distinct_on(municipality_id, plausible_only=True)
+    return _latest_readings_correlated(municipality_id, plausible_only=True)
+
+
 def latest_readings_with_previous(municipality_id=None):
     """
     Latest SensorReading per sensor plus previous air temperature (for trend).
@@ -67,14 +74,16 @@ def latest_readings_with_previous(municipality_id=None):
     Fallback: legacy correlated subqueries over all readings (slow on large tables).
     """
     if connection.vendor == 'postgresql':
-        return _latest_readings_distinct_on(municipality_id)
-    return _latest_readings_correlated(municipality_id)
+        return _latest_readings_distinct_on(municipality_id, plausible_only=False)
+    return _latest_readings_correlated(municipality_id, plausible_only=False)
 
 
-def _latest_readings_distinct_on(municipality_id=None):
+def _latest_readings_distinct_on(municipality_id=None, *, plausible_only: bool = False):
+    scoped = _scope_readings(municipality_id=municipality_id)
+    if plausible_only:
+        scoped = scoped.filter(is_plausible=True)
     latest_ids = (
-        _scope_readings(municipality_id=municipality_id)
-        .order_by('sensor_id', '-timestamp', '-id')
+        scoped.order_by('sensor_id', '-timestamp', '-id')
         .distinct('sensor_id')
         .values('pk')
     )
@@ -95,8 +104,10 @@ def _latest_readings_distinct_on(municipality_id=None):
     )
 
 
-def _latest_readings_correlated(municipality_id=None):
+def _latest_readings_correlated(municipality_id=None, *, plausible_only: bool = False):
     base = _scope_readings(municipality_id=municipality_id)
+    if plausible_only:
+        base = base.filter(is_plausible=True)
 
     latest_timestamp = (
         SensorReading.objects.filter(sensor_id=OuterRef('sensor_id'))

@@ -13,8 +13,9 @@ class SensorAdmin(TauSenseModelAdmin):
         'display_name',
         'external_id',
         'active',
+        'maintenance_mode',
     )
-    list_filter = ('active', 'sensor_type', 'operator_name', 'municipality')
+    list_filter = ('active', 'maintenance_mode', 'sensor_type', 'operator_name', 'municipality')
     search_fields = (
         'name',
         'device_name',

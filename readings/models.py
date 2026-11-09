@@ -24,6 +24,11 @@ class SensorReading(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     raw_data = models.JSONField(null=True, blank=True)
+    is_plausible = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text='False when values are outside configured physical limits (still stored for diagnostics).',
+    )
 
     class Meta:
         ordering = ['-timestamp']

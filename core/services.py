@@ -1,10 +1,13 @@
 from core.ice_warning import ICE_WARNING_LABELS, ICE_WARNING_NONE, alert_status_for_level
 from core.ice_warning_state import ice_warning_level_for_reading
+from core.map_display import resolve_map_measurement_context
 from core.utils import calculate_dew_point, calculate_trend
 from readings.models import SensorReading
-from readings.selectors import latest_readings_with_previous
+from readings.selectors import (
+    latest_plausible_readings_with_previous,
+    latest_readings_with_previous,
+)
 from sensors.models import Sensor
-
 
 
 def _stored_ice_warning_level(sensor: Sensor) -> str:
@@ -104,7 +107,9 @@ def dashboard_warnings(municipality_id=None):
 
 
 def dashboard_coldest_sensor(municipality_id=None):
-    qs = latest_readings_with_previous(municipality_id=municipality_id).order_by('road_temperature')
+    qs = latest_plausible_readings_with_previous(municipality_id=municipality_id).order_by(
+        'road_temperature',
+    )
     reading = qs.first()
     if not reading:
         return None
@@ -133,48 +138,48 @@ def dashboard_map_data(municipality_id=None, since=None):
         reading.sensor_id: reading
         for reading in latest_readings_with_previous(municipality_id=municipality_id)
     }
+    plausible_by_sensor: dict[int, SensorReading] = {
+        reading.sensor_id: reading
+        for reading in latest_plausible_readings_with_previous(municipality_id=municipality_id)
+    }
+
     payload = []
     for sensor in sensor_qs:
-        reading = latest_by_sensor.get(sensor.id)
-        if reading is None:
+        latest = latest_by_sensor.get(sensor.id)
+        if latest is None:
             continue
-        if since and reading.timestamp <= since and sensor.updated_at <= since:
+        if since and latest.timestamp <= since and sensor.updated_at <= since:
             continue
-        fields = _map_reading_fields(reading, sensor)
-        if fields['latitude'] is None or fields['longitude'] is None:
+        latitude = sensor.latitude if sensor.latitude is not None else latest.latitude
+        longitude = sensor.longitude if sensor.longitude is not None else latest.longitude
+        if latitude is None or longitude is None:
             continue
+
+        latest_plausible = plausible_by_sensor.get(sensor.id)
+        ctx = resolve_map_measurement_context(
+            sensor,
+            latest,
+            latest_plausible,
+            previous_air_for_display=(
+                getattr(latest_plausible, 'previous_air_temperature', None)
+                if latest_plausible
+                else None
+            ),
+        )
+        sensor_name = sensor.display_name or sensor.name
         payload.append(
             {
                 'sensor_id': sensor.id,
-                'sensor_name': fields['sensor_name'],
+                'sensor_name': sensor_name,
                 'device_name': sensor.device_name,
                 'operator_name': sensor.operator_name,
                 'municipality': sensor.municipality.name if sensor.municipality else None,
                 'coordinates': {
-                    'lat': float(fields['latitude']),
-                    'lon': float(fields['longitude']),
+                    'lat': float(latitude),
+                    'lon': float(longitude),
                 },
                 'updated_at': sensor.updated_at,
-                'latest_reading': {
-                    'timestamp': reading.timestamp,
-                    'device_name': reading.device_name,
-                    'air_temperature': reading.air_temperature,
-                    'road_temperature': reading.road_temperature,
-                    'humidity': reading.humidity,
-                    'air_temperature_radiation_shield': reading.air_temperature_radiation_shield,
-                    'air_humidity_radiation_shield': reading.air_humidity_radiation_shield,
-                    'air_temperature_unshielded': reading.air_temperature_unshielded,
-                    'air_humidity_unshielded': reading.air_humidity_unshielded,
-                    'dew_point': fields['dew_point'],
-                    'reported_dew_point': reading.reported_dew_point,
-                    'trend': fields['trend'],
-                    'angle': reading.angle,
-                    'sensor_temperature': reading.sensor_temperature,
-                    'battery_voltage': reading.battery_voltage,
-                },
-                'ice_warning_level': fields['ice_warning_level'],
-                'ice_warning_label': ICE_WARNING_LABELS[fields['ice_warning_level']],
-                'alert_status': alert_status_for_level(fields['ice_warning_level']),
+                **ctx,
             }
         )
     return payload

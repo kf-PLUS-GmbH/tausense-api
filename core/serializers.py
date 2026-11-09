@@ -44,6 +44,15 @@ class MapLatestReadingSerializer(serializers.Serializer):
     angle = serializers.FloatField(allow_null=True)
     sensor_temperature = serializers.FloatField(allow_null=True)
     battery_voltage = serializers.FloatField(allow_null=True)
+    is_plausible = serializers.BooleanField(
+        help_text='False when road/air/humidity are outside configured physical limits.',
+    )
+
+
+class MapDisplayReadingSerializer(MapLatestReadingSerializer):
+    is_stale = serializers.BooleanField(
+        help_text='True when display_reading is an older plausible row (latest is invalid).',
+    )
 
 
 class DashboardMapSensorSerializer(serializers.Serializer):
@@ -54,7 +63,22 @@ class DashboardMapSensorSerializer(serializers.Serializer):
     municipality = serializers.CharField(allow_null=True)
     coordinates = CoordinatesSerializer()
     updated_at = serializers.DateTimeField()
-    latest_reading = MapLatestReadingSerializer()
+    measurement_status = serializers.ChoiceField(
+        choices=['ok', 'unreliable', 'maintenance'],
+        help_text='Whether the UI should trust latest_reading or show a status banner.',
+    )
+    status_message = serializers.CharField(
+        allow_null=True,
+        help_text='German hint for unreliable or maintenance; null when measurement_status is ok.',
+    )
+    latest_reading = MapLatestReadingSerializer(
+        allow_null=True,
+        help_text='Most recent stored row (may be implausible).',
+    )
+    display_reading = MapDisplayReadingSerializer(
+        allow_null=True,
+        help_text='Values to show on map/detail: latest when ok, else last plausible row.',
+    )
     ice_warning_level = serializers.ChoiceField(
         choices=['none', 'possible_slip', 'increased_ice', 'acute_ice'],
         help_text='Ice/slip risk level derived from road temperature, dew point and humidity.',
@@ -63,7 +87,7 @@ class DashboardMapSensorSerializer(serializers.Serializer):
         help_text='German label for the ice warning level.',
     )
     alert_status = serializers.ChoiceField(
-        choices=['green', 'yellow', 'orange', 'red'],
-        help_text='Map marker color mapped from ice_warning_level.',
+        choices=['green', 'yellow', 'orange', 'red', 'gray'],
+        help_text='Map marker color; gray when maintenance or no displayable values.',
     )
 

@@ -188,6 +188,22 @@ TEST_PUSH_ENABLED = os.environ.get('TEST_PUSH_ENABLED', 'false').lower() == 'tru
 TEST_PUSH_SECRET = os.environ.get('TEST_PUSH_SECRET', '').strip()
 PUSH_REMINDER_MINUTES = int(os.environ.get('PUSH_REMINDER_MINUTES', '30'))
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name, '').strip()
+    if not raw:
+        return default
+    return float(raw)
+
+
+READING_PLAUSIBILITY = {
+    'road_temp_min': _env_float('READING_ROAD_TEMP_MIN', -50.0),
+    'road_temp_max': _env_float('READING_ROAD_TEMP_MAX', 60.0),
+    'air_temp_min': _env_float('READING_AIR_TEMP_MIN', -50.0),
+    'air_temp_max': _env_float('READING_AIR_TEMP_MAX', 50.0),
+    'humidity_min': _env_float('READING_HUMIDITY_MIN', 0.0),
+    'humidity_max': _env_float('READING_HUMIDITY_MAX', 100.0),
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

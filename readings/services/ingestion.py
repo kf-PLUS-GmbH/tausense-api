@@ -165,6 +165,14 @@ def ingest_lorawan_payload(
     )
     road_temperature = _pick_float(payload, 'surface_temperature')
 
+    from core.reading_plausibility import is_reading_plausible
+
+    is_plausible = is_reading_plausible(
+        road_temperature=road_temperature,
+        air_temperature=air_temperature,
+        humidity=humidity,
+    )
+
     reading, _ = SensorReading.objects.update_or_create(
         sensor=sensor,
         timestamp=timestamp,
@@ -190,34 +198,42 @@ def ingest_lorawan_payload(
             'latitude': _optional_decimal(payload, 'lat'),
             'longitude': _optional_decimal(payload, 'lon'),
             'raw_data': raw_payload if raw_payload is not None else payload,
+            'is_plausible': is_plausible,
         },
     )
 
     from core.ice_warning_state import update_sensor_ice_warning_from_reading
     from devices.services.subscriptions import notify_sensor_ice_warning_after_ingest
 
-    new_level = update_sensor_ice_warning_from_reading(sensor, reading)
+    from core.ice_warning import ICE_WARNING_NONE
+
+    if is_plausible:
+        new_level = update_sensor_ice_warning_from_reading(sensor, reading)
+    else:
+        new_level = sensor.ice_warning_level or ICE_WARNING_NONE
     sensor_id = sensor.pk
     reading_id = reading.pk
 
-    def _run_push_after_commit(s_id=sensor_id, r_id=reading_id, level=new_level):
-        close_old_connections()
-        try:
-            notify_sensor_ice_warning_after_ingest(s_id, r_id, level)
-        except Exception:
-            logger.exception('Push after webhook ingest failed (sensor_id=%s)', s_id)
-        finally:
+    if is_plausible:
+
+        def _run_push_after_commit(s_id=sensor_id, r_id=reading_id, level=new_level):
             close_old_connections()
+            try:
+                notify_sensor_ice_warning_after_ingest(s_id, r_id, level)
+            except Exception:
+                logger.exception('Push after webhook ingest failed (sensor_id=%s)', s_id)
+            finally:
+                close_old_connections()
 
-    def _schedule_push(s_id=sensor_id, r_id=reading_id, level=new_level):
-        threading.Thread(
-            target=_run_push_after_commit,
-            args=(s_id, r_id, level),
-            daemon=True,
-            name='tausense-push-after-ingest',
-        ).start()
+        def _schedule_push(s_id=sensor_id, r_id=reading_id, level=new_level):
+            threading.Thread(
+                target=_run_push_after_commit,
+                args=(s_id, r_id, level),
+                daemon=True,
+                name='tausense-push-after-ingest',
+            ).start()
 
-    transaction.on_commit(_schedule_push)
+        transaction.on_commit(_schedule_push)
     return reading
 
 

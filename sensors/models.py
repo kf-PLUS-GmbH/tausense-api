@@ -49,6 +49,10 @@ class Sensor(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     sensor_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     active = models.BooleanField(default=True)
+    maintenance_mode = models.BooleanField(
+        default=False,
+        help_text='When set, the app shows maintenance status and hides live warning colours.',
+    )
     external_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     ice_warning_level = models.CharField(
         max_length=20,
