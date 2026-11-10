@@ -23,7 +23,7 @@ Pro Sensor **neu** (zusätzlich zu den bisherigen Stammdaten):
 |------|-----|--------------|
 | `measurement_status` | `"ok"` \| `"unreliable"` \| `"maintenance"` | Steuert Banner / Marker-Logik |
 | `status_message` | `string` \| `null` | Deutsch, nur wenn nicht `ok` |
-| `display_reading` | Objekt \| `null` | **Anzeige** auf Karte & Detail |
+| `display_reading` | Objekt \| `null` | Nur bei `measurement_status` ≠ `"ok"` (sonst `null`, Anzeige aus `latest_reading`) |
 | `latest_reading.is_plausible` | `boolean` | Ob der Roh-Messwert in den Grenzen liegt |
 | `alert_status` | … \| **`"gray"`** | Grau bei Wartung oder ohne anzeigbare Werte |
 
@@ -37,7 +37,7 @@ Pro Sensor **neu** (zusätzlich zu den bisherigen Stammdaten):
 
 ### UI-Empfehlung (Flutter)
 
-1. **Temperaturen / Trend / Taupunkt:** aus `display_reading` wenn nicht `null`, sonst Fallback `latest_reading` nur bei `measurement_status == "ok"`.
+1. **Temperaturen / Trend / Taupunkt:** `display_reading ?? latest_reading` (bei `ok` ist `display_reading` immer `null`).
 2. **Marker-Farbe:** `alert_status` (bei `gray` neutraler Marker, kein Warn-Rot).
 3. **Banner:** wenn `status_message != null`, Text anzeigen.
 4. **Wartung:** `measurement_status == "maintenance"` → Meldung „Sensor gerade in Wartung“ (`status_message`).
@@ -72,9 +72,11 @@ Pro Sensor **neu** (zusätzlich zu den bisherigen Stammdaten):
   "status_message": "Sensor gerade in Wartung",
   "alert_status": "gray",
   "ice_warning_level": "none",
-  "display_reading": { "...": "letzter plausibler Wert, optional" }
+  "display_reading": { "...": "letzter plausibler Wert, wenn ≠ latest" }
 }
 ```
+
+Bei Wartung mit plausibelem `latest_reading` kann `display_reading` **`null`** sein – Werte dann aus `latest_reading`.
 
 ## Backend-Verhalten (kurz)
 

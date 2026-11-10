@@ -77,7 +77,7 @@ class DashboardMapSensorSerializer(serializers.Serializer):
     )
     display_reading = MapDisplayReadingSerializer(
         allow_null=True,
-        help_text='Values to show on map/detail: latest when ok, else last plausible row.',
+        help_text='Last plausible row when measurement_status is not ok; null when ok (use latest_reading).',
     )
     ice_warning_level = serializers.ChoiceField(
         choices=['none', 'possible_slip', 'increased_ice', 'acute_ice'],

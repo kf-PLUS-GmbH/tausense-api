@@ -58,6 +58,17 @@ class MapMeasurementContextTests(TestCase):
             is_plausible=False,
         )
 
+    def test_ok_omits_display_reading(self):
+        ctx = resolve_map_measurement_context(
+            self.sensor,
+            self.good,
+            self.good,
+            previous_air_for_display=None,
+        )
+        self.assertEqual(ctx['measurement_status'], 'ok')
+        self.assertIsNotNone(ctx['latest_reading'])
+        self.assertIsNone(ctx['display_reading'])
+
     def test_unreliable_uses_last_plausible_display(self):
         ctx = resolve_map_measurement_context(
             self.sensor,

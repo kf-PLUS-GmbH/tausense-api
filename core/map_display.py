@@ -128,7 +128,7 @@ def _build_context(
         else None
     )
     display_payload = None
-    if display is not None:
+    if display is not None and measurement_status != MEASUREMENT_STATUS_OK:
         is_stale = latest is not None and display.id != latest.id
         display_payload = _reading_payload(display, previous_air=previous_air)
         display_payload['is_stale'] = is_stale
