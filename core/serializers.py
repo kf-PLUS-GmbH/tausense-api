@@ -1,6 +1,25 @@
 from rest_framework import serializers
 
 
+class AppMaintenanceSerializer(serializers.Serializer):
+    active = serializers.BooleanField(
+        help_text='True when the app should show the maintenance banner now.',
+    )
+    state = serializers.ChoiceField(
+        choices=['inactive', 'scheduled', 'active', 'ended'],
+        help_text='inactive=off; scheduled=starts later; active=show banner; ended=past ends_at.',
+    )
+    title = serializers.CharField()
+    message = serializers.CharField(allow_blank=True)
+    starts_at = serializers.DateTimeField(allow_null=True)
+    ends_at = serializers.DateTimeField(allow_null=True)
+    updated_at = serializers.DateTimeField()
+
+
+class AppMaintenanceResponseSerializer(serializers.Serializer):
+    app_maintenance = AppMaintenanceSerializer()
+
+
 class DashboardWarningSerializer(serializers.Serializer):
     municipality = serializers.CharField(
         help_text='Municipality name.',

@@ -7,8 +7,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.app_maintenance import resolve_app_maintenance
 from core.services import dashboard_coldest_sensor, dashboard_map_data, dashboard_warnings
 from core.serializers import (
+    AppMaintenanceResponseSerializer,
     DashboardColdestSensorSerializer,
     DashboardMapSensorSerializer,
     DashboardWarningSerializer,
@@ -184,3 +186,16 @@ class DashboardMapDataView(APIView):
         )
         response['X-Sync-Timestamp'] = timezone.now().isoformat()
         return response
+
+
+class AppMaintenanceView(APIView):
+    @extend_schema(
+        tags=['System'],
+        description=(
+            'Global app maintenance / info banner for mobile clients. '
+            'Poll on app start and occasionally in the background.'
+        ),
+        responses={200: AppMaintenanceResponseSerializer},
+    )
+    def get(self, request):
+        return Response({'app_maintenance': resolve_app_maintenance()})

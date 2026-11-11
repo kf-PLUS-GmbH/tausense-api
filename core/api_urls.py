@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from alerts.views import AlertEventViewSet, AlertRuleViewSet
 from core.views import (
+    AppMaintenanceView,
     DashboardColdestSensorView,
     DashboardMapDataView,
     DashboardWarningsView,
@@ -21,6 +22,7 @@ router.register(r'alerts/rules', AlertRuleViewSet, basename='alert-rule')
 router.register(r'alerts/events', AlertEventViewSet, basename='alert-event')
 
 urlpatterns = [
+    path('system/app-maintenance/', AppMaintenanceView.as_view(), name='app-maintenance'),
     path('', include(router.urls)),
     path('dashboard/warnings/', DashboardWarningsView.as_view(), name='dashboard-warnings'),
     path(
